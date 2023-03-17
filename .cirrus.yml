@@ -1,0 +1,20 @@
+timeout_in: 20m
+
+apple_silion_task:
+  name: Apple Silicon build
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-ventura-base:latest
+
+  environment:
+    CFLAGS: -Wno-unused-result -Wno-unreachable-code -fno-common -dynamic -DNDEBUG -g -fwrapv -O3 -Wall -arch arm64 -arch x86_64 -g
+    LDFLAGS: -arch arm64 -arch x86_64 -g
+    CIRRUS_CLONE_DEPTH: 1
+
+  test_script: |
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install -q python@3.10 samtools bcftools
+    export PATH=$PATH:$HOME/Library/Python/3.10/bin
+    pip3.10 install --user cython pytest
+    python3.10 setup.py build
+    cat htslib/config.log
+    export PYTHONPATH=$(echo $PWD/build/lib.*)
+    REF_PATH=':' pytest
