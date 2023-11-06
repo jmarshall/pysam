@@ -1,1 +1,3 @@
 def py_samtools() -> None: ...
+
+__version__: str

@@ -1,1 +1,3 @@
 def py_bcftools() -> None: ...
+
+__version__: str

@@ -217,9 +217,10 @@ def configure_library(library_dir, env_options=None, options=[]):
 
 
 def get_pysam_version():
-    sys.path.insert(0, "pysam")
-    import version
-    return version.__version__
+    # Most recent release, updated manually
+    release_version = '0.22.0'
+
+    return release_version
 
 
 # Override sdist command to ensure Cythonized *.c files are included.
@@ -572,7 +573,7 @@ def prebuild_libchtslib(ext, force):
             # TODO Eventually by running configure here, we can set these
             # extra flags for configure instead of hacking on ALL_CPPFLAGS.
             args = " ".join(ext.extra_compile_args)
-            run_make(["ALL_CPPFLAGS=-I. " + args + " $(CPPFLAGS)", "lib-static"])
+            run_make(["ALL_CPPFLAGS=-I../pysam -I. " + args + " $(CPPFLAGS)", "lib-static"])
     else:
         log.warning("skipping 'libhts.a' (already built)")
 

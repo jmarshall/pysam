@@ -12,6 +12,8 @@ class _HasFileNo(Protocol):
 def get_verbosity() -> int: ...
 def set_verbosity(level: int): ...
 
+__version__: str
+
 THFile = TypeVar("THFile", bound="HFile")
 
 class HFile:

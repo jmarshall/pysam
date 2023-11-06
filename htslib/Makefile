@@ -158,12 +158,6 @@ MACH_O_CURRENT_VERSION = 3.1.18
 # even if this is a dirty or untagged Git working tree.
 NUMERIC_VERSION := $(shell $(srcdir)/version.sh numeric)
 
-# Force version.h to be remade if $(PACKAGE_VERSION) has changed.
-version.h: $(if $(wildcard version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat version.h)),,force))
-
-version.h:
-	echo '#define HTS_VERSION_TEXT "$(PACKAGE_VERSION)"' > $@
-
 print-version:
 	@echo $(PACKAGE_VERSION)
 
@@ -452,7 +446,7 @@ hfile_gcs.o hfile_gcs.pico: hfile_gcs.c config.h $(htslib_hts_h) $(htslib_kstrin
 hfile_libcurl.o hfile_libcurl.pico: hfile_libcurl.c config.h $(hfile_internal_h) $(htslib_hts_h) $(htslib_kstring_h) $(htslib_khash_h)
 hfile_s3_write.o hfile_s3_write.pico: hfile_s3_write.c config.h $(hfile_internal_h) $(htslib_hts_h) $(htslib_kstring_h) $(htslib_khash_h)
 hfile_s3.o hfile_s3.pico: hfile_s3.c config.h $(hfile_internal_h) $(htslib_hts_h) $(htslib_kstring_h) $(hts_time_funcs_h)
-hts.o hts.pico: hts.c config.h os/lzma_stub.h $(htslib_hts_h) $(htslib_bgzf_h) $(cram_h) $(htslib_hfile_h) $(htslib_hts_endian_h) version.h config_vars.h $(hts_internal_h) $(hfile_internal_h) $(sam_internal_h) $(htslib_hts_expr_h) $(htslib_hts_os_h) $(htslib_khash_h) $(htslib_kseq_h) $(htslib_ksort_h) $(htslib_tbx_h) $(htscodecs_htscodecs_h)
+hts.o hts.pico: hts.c config.h os/lzma_stub.h $(htslib_hts_h) $(htslib_bgzf_h) $(cram_h) $(htslib_hfile_h) $(htslib_hts_endian_h) config_vars.h $(hts_internal_h) $(hfile_internal_h) $(sam_internal_h) $(htslib_hts_expr_h) $(htslib_hts_os_h) $(htslib_khash_h) $(htslib_kseq_h) $(htslib_ksort_h) $(htslib_tbx_h) $(htscodecs_htscodecs_h)
 hts_expr.o hts_expr.pico: hts_expr.c config.h $(htslib_hts_expr_h) $(htslib_hts_log_h) $(textutils_internal_h)
 hts_os.o hts_os.pico: hts_os.c config.h $(htslib_hts_defs_h) os/rand.c
 vcf.o vcf.pico: vcf.c config.h $(htslib_vcf_h) $(htslib_bgzf_h) $(htslib_tbx_h) $(htslib_hfile_h) $(hts_internal_h) $(htslib_khash_str2int_h) $(htslib_kstring_h) $(htslib_sam_h) $(htslib_khash_h) $(htslib_kseq_h) $(htslib_hts_endian_h)
@@ -906,7 +900,7 @@ testclean:
 DEL_HTSCODECS_VERSION := $(if $(wildcard htscodecs/.git),htscodecs/htscodecs/version.h)
 
 mostlyclean: testclean
-	-rm -f *.o *.pico cram/*.o cram/*.pico test/*.o test/*.dSYM config_vars.h version.h
+	-rm -f *.o *.pico cram/*.o cram/*.pico test/*.o test/*.dSYM config_vars.h
 	-rm -f htscodecs/htscodecs/*.o htscodecs/htscodecs/*.pico $(DEL_HTSCODECS_VERSION)
 	-rm -f hts-object-files
 	-rm -f htscodecs/tests/*.o

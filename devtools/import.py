@@ -1,4 +1,5 @@
-#################################################################
+#!/usr/bin/env python3
+#
 # Importing samtools, bcftools, and htslib
 #
 # For each package PKG:
@@ -8,6 +9,7 @@
 
 import fnmatch
 import os
+from pathlib import Path
 import re
 import itertools
 import shutil
@@ -39,6 +41,17 @@ EXCLUDE = {
         'htslib/htsfile.c',
         "samples", "test", "tests"),
 }
+
+
+def filter_htslib(path):
+    text = path.read_text()
+
+    if path.name == 'Makefile':
+        # Remove version.h rules and dependencies so building HTSlib uses pysam/version.h
+        text = re.sub(r'# Force version\.h.*?\$\@\n\n', r'', text, flags=re.DOTALL)
+        text = re.sub(r' version\.h', r'', text)
+
+    return text
 
 
 MAIN = {
@@ -207,6 +220,11 @@ if len(sys.argv) >= 1:
 
         _update_pysam_files(cf, destdir)
 
+    else:
+        sys.stdout.write("applying htslib/Makefile patch\n")
+        text = filter_htslib(Path(srcdir) / 'Makefile')
+        (Path(destdir) / 'Makefile').write_text(text)
+
     def _getVersion(srcdir):
         with open(os.path.join(srcdir, "version.sh"), encoding="utf-8") as inf:
             for line in inf:
@@ -239,7 +257,6 @@ if len(sys.argv) >= 1:
         os.rename(tmpfilename, filename)
 
     version = _getVersion(srcdir)
-    _update_version_file("__{}_version__".format(dest), version, "pysam/version.py")
     _update_version_file(C_VERSION[dest], version + " (pysam)", "pysam/version.h")
     _update_version_doc_file(dest, version, "README.rst")
     _update_version_doc_file(dest, version, "doc/index.rst")

@@ -35,6 +35,8 @@ from warnings import warn
 
 __all__ = ['get_verbosity', 'set_verbosity', 'HFile', 'HTSFile']
 
+__version__ = hts_version().decode('ascii')
+
 # maximum genomic coordinace
 cdef int MAX_POS = (1 << 31) - 1
 
