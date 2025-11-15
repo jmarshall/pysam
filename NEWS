@@ -1,6 +1,58 @@
 .. An online version of the release history can be found here:
 .. http://pysam.readthedocs.io/en/latest/release.html
 
+Release 0.24.0
+==============
+
+.. rubric:: xx December 2025
+
+This pysam release wraps htslib and samtools version 1.22.1 and
+bcftools version 1.22 (PR #1343) and now requires Cython 3.
+
+It has been tested with Python versions 3.8 through 3.14, and wheels are
+available via PyPI_ for all of those Python versions. Wheels are built for
+macOS and Linux (manylinux_2_28 and musllinux_1_2) on both ARM and x86-64.
+
+This release is the first to wrap htslib 1.22 or later, which contains
+significant CRAM-related operational changes inherited by pysam:
+
+* The default output CRAM version is now 3.1 rather than 3.0.
+
+* CRAM reference data is no longer fetched from EBI's server by default.
+  Use the :envvar:`REF_CACHE` and :envvar:`REF_PATH` environment variables
+  if necessary to set up an alternative source of CRAM reference data.
+
+The final pysam release that supported Python 3.6 and 3.7 was v0.23.0.
+v0.24.x is expected to be the last release series supporting Python 3.8.
+
+Bugs fixed:
+
+* Removed :attr:`.AlignedSegment.modified_bases`'s limitation of only five
+  modification types in MM/ML fields. (#1348, reported by Leszek Pryszcz)
+
+* Fixed :attr:`.AlignedSegment.modified_bases` crash when given a degenerate
+  MM field that modifies no bases at all. (#1355, reported by Jun Mencius)
+
+* Suppressed TestBinaryCompatibility test cases on platforms where we
+  have not calculated the expected sizes. Also fixed the capturing of
+  :func:`pysam.samtools.calmd() <.samtools.command>` output, particularly
+  on 32-bit i386. (#1367, reported by Étienne Mollier for Debian)
+
+New functionality:
+
+* Updated pysam/libchtslib.pxd declarations to the HTSlib 1.22.1 API.
+  This is the first comprehensive update that these Cython HTSlib API
+  declarations have received. (PR #1362)
+
+Documentation improvements:
+
+* New documentation for VariantRecordSample et al FIXME
+  (PR #1358, PR #1359, PR #1361, thanks to Tim Dunn)
+
+* Clarified :attr:`.AlignedSegment.query_alignment_length` et al
+  behaviour for unmapped reads. (#1319, reported by Sam Chorlton)
+
+
 Release 0.23.3
 ==============
 
