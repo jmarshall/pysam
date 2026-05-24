@@ -2,7 +2,8 @@
 import os
 import pysam
 import sys
-import unittest
+import pytest
+
 from TestUtils import make_data_files, BAM_DATADIR, force_str, flatten_nested_list
 import PileupTestUtils
 
@@ -11,18 +12,17 @@ def setUpModule():
     make_data_files(BAM_DATADIR)
 
 
-class TestPileupReadSelection(unittest.TestCase):
+class TestPileupReadSelection:
     '''test pileup functionality.'''
 
     samfilename = os.path.join(BAM_DATADIR, "ex1.bam")
     fastafilename = os.path.join(BAM_DATADIR, "ex1.fa")
 
-    def setUp(self):
-
+    def setup_method(self):
         self.samfile = pysam.AlignmentFile(self.samfilename)
         self.fastafile = pysam.FastaFile(self.fastafilename)
 
-    def tearDown(self):
+    def teardown_method(self):
         self.samfile.close()
         self.fastafile.close()
 
@@ -30,13 +30,11 @@ class TestPileupReadSelection(unittest.TestCase):
 
         for x, column in enumerate(iterator):
             v = references[x][:-1].split("\t")
-            self.assertEqual(
-                len(v), 6,
-                "expected 6 values, got {}".format(v))
+            assert len(v) == 6
             (contig, pos, reference_base,
              read_bases, read_qualities, alignment_mapping_qualities) \
                 = v
-            self.assertEqual(int(pos) - 1, column.reference_pos)
+            assert int(pos) - 1 == column.reference_pos
 
     def test_samtools_stepper(self):
         refs = force_str(
@@ -128,13 +126,12 @@ class TestPileupReadSelectionFastafile(TestPileupReadSelection):
     samfilename = os.path.join(BAM_DATADIR, "ex1.bam")
     fastafilename = os.path.join(BAM_DATADIR, "ex1.fa")
 
-    def setUp(self):
-
+    def setup_method(self):
         self.samfile = pysam.AlignmentFile(self.samfilename)
         self.fastafile = pysam.Fastafile(self.fastafilename)
 
 
-class TestPileupQueryPosition(unittest.TestCase):
+class TestPileupQueryPosition:
 
     filename = "test_query_position.bam"
 
@@ -146,69 +143,39 @@ class TestPileupQueryPosition(unittest.TestCase):
                     # print r.alignment.query_name
                     # print r.query_position, r.query_position_or_next, r.is_del
                     if r.is_del:
-                        self.assertEqual(r.query_position, None)
-                        self.assertEqual(r.query_position_or_next,
-                                         last[r.alignment.query_name] + 1)
+                        assert r.query_position is None
+                        assert r.query_position_or_next == last[r.alignment.query_name] + 1
                     else:
-                        self.assertNotEqual(r.query_position, None)
+                        assert r.query_position is not None
                         last[r.alignment.query_name] = r.query_position
 
 
-class TestPileupObjects(unittest.TestCase):
-
-    def setUp(self):
+class TestPileupObjects:
+    def setup_method(self):
         self.samfile = pysam.AlignmentFile(os.path.join(BAM_DATADIR, "ex1.bam"),
                                            "rb")
 
     def testPileupColumn(self):
         for pcolumn1 in self.samfile.pileup(region="chr1:105-106"):
             if pcolumn1.reference_pos == 104:
-                self.assertEqual(
-                    pcolumn1.reference_id, 0,
-                    "chromosome/target id mismatch in position 1: %s != %s" %
-                    (pcolumn1.reference_id, 0))
-                self.assertEqual(
-                    pcolumn1.reference_name, "chr1",
-                    "chromosome mismatch in position 1: %s != %s" %
-                    (pcolumn1.reference_name, "chr1"))
-                self.assertEqual(
-                    pcolumn1.reference_pos, 105 - 1,
-                    "position mismatch in position 1: %s != %s" %
-                    (pcolumn1.reference_pos, 105 - 1))
-                self.assertEqual(
-                    pcolumn1.nsegments, 1,
-                    "# reads mismatch in position 1: %s != %s" %
-                    (pcolumn1.nsegments, 1))
-                self.assertEqual(
-                    len(pcolumn1.pileups), 1,
-                    "# reads aligned to column mismatch in position 1"
-                    ": %s != %s" %
-                    (len(pcolumn1.pileups), 1))
+                assert pcolumn1.reference_id == 0, "chromosome/target id mismatch in position 1"
+                assert pcolumn1.reference_name == "chr1", "chromosome mismatch in position 1"
+                assert pcolumn1.reference_pos == 105 - 1, "position mismatch in position 1"
+                assert pcolumn1.nsegments == 1, "# reads mismatch in position 1"
+                assert len(pcolumn1.pileups) == 1, "# reads aligned to column mismatch in position 1"
 
         for pcolumn2 in self.samfile.pileup(region="chr2:1480-1481"):
             if pcolumn2.reference_pos == 1479:
-                self.assertEqual(
-                    pcolumn2.reference_id, 1,
-                    "chromosome/target id mismatch in position 1: %s != %s" %
-                    (pcolumn2.reference_id, 1))
-                self.assertEqual(
-                    pcolumn2.reference_name, "chr2",
-                    "chromosome mismatch in position 1: %s != %s" %
-                    (pcolumn2.reference_name, "chr2"))
-                self.assertEqual(
-                    pcolumn2.reference_pos, 1480 - 1,
-                    "position mismatch in position 1: %s != %s" %
-                    (pcolumn2.reference_pos, 1480 - 1))
-                self.assertEqual(
-                    pcolumn2.nsegments, 12,
-                    "# reads mismatch in position 1: %s != %s" %
-                    (pcolumn2.nsegments, 12))
+                assert pcolumn2.reference_id == 1, "chromosome/target id mismatch in position 1"
+                assert pcolumn2.reference_name == "chr2", "chromosome mismatch in position 1"
+                assert pcolumn2.reference_pos == 1480 - 1, "position mismatch in position 1"
+                assert pcolumn2.nsegments == 12, "# reads mismatch in position 1"
 
-    def tearDown(self):
+    def teardown_method(self):
         self.samfile.close()
 
-    @unittest.skipIf(sys.version_info[:2] == (3, 11) or sys.platform.startswith("netbsd"),
-                     "exercises invalid accesses, which crashes on Python 3.11 and NetBSD")
+    @pytest.mark.skipif(sys.version_info[:2] == (3, 11) or sys.platform.startswith("netbsd"),
+                        reason="exercises invalid accesses, which crashes on Python 3.11 and NetBSD")
     def testIteratorOutOfScope(self):
         '''test if exception is raised if pileup col is accessed after
         iterator is exhausted.'''
@@ -219,16 +186,16 @@ class TestPileupObjects(unittest.TestCase):
                 max_col = pileupcol
                 max_n = pileupcol.n
 
-        self.assertRaises(ValueError, getattr, max_col, "pileups")
-        self.assertRaises(ValueError, max_col.get_query_sequences)
-        self.assertRaises(ValueError, max_col.get_num_aligned)
-        self.assertRaises(ValueError, max_col.get_query_qualities)
-        self.assertRaises(ValueError, max_col.get_mapping_qualities)
-        self.assertRaises(ValueError, max_col.get_query_positions)
-        self.assertRaises(ValueError, max_col.get_query_names)
+        with pytest.raises(ValueError): max_col.pileups
+        with pytest.raises(ValueError): max_col.get_query_sequences()
+        with pytest.raises(ValueError): max_col.get_num_aligned()
+        with pytest.raises(ValueError): max_col.get_query_qualities()
+        with pytest.raises(ValueError): max_col.get_mapping_qualities()
+        with pytest.raises(ValueError): max_col.get_query_positions()
+        with pytest.raises(ValueError): max_col.get_query_names()
 
 
-class TestIteratorColumnBAM(unittest.TestCase):
+class TestIteratorColumnBAM:
 
     '''test iterator column against contents of ex4.bam.'''
 
@@ -239,7 +206,7 @@ class TestIteratorColumnBAM(unittest.TestCase):
                   'chr2': [0] * 20 + [1] * 35 + [0] * (100 - 20 - 35),
                   }
 
-    def setUp(self):
+    def setup_method(self):
         self.samfile = pysam.AlignmentFile(os.path.join(BAM_DATADIR, "ex4.bam"),
                                            "rb")
 
@@ -249,15 +216,13 @@ class TestIteratorColumnBAM(unittest.TestCase):
         for column in self.samfile.pileup(
                 contig, start, end, truncate=truncate, min_base_quality=0):
             if truncate:
-                self.assertGreaterEqual(column.reference_pos, start)
-                self.assertLess(column.reference_pos, end)
+                assert column.reference_pos >= start
+                assert column.reference_pos < end
             thiscov = len(column.pileups)
             refcov = self.mCoverages[
                 self.samfile.getrname(column.reference_id)][column.reference_pos]
-            self.assertEqual(thiscov, refcov,
-                             "wrong coverage at pos %s:%i %i should be %i" % (
-                                 self.samfile.getrname(column.reference_id),
-                                 column.reference_pos, thiscov, refcov))
+            assert thiscov == refcov, \
+                   f"wrong coverage at {self.samfile.getrname(column.reference_id)}:{column.reference_pos}"
 
     def testIterateAll(self):
         '''check random access per contig'''
@@ -284,19 +249,11 @@ class TestIteratorColumnBAM(unittest.TestCase):
                 columns = list(self.samfile.pileup(contig, pos, pos + 1))
                 if refcov == 0:
                     # if no read, no coverage
-                    self.assertEqual(
-                        len(columns),
-                        refcov,
-                        "wrong number of pileup columns returned for position %s:%i, %i should be %i" % (
-                            contig, pos,
-                            len(columns), refcov))
+                    assert len(columns) == refcov, \
+                           f"wrong number of pileup columns returned for position {contig}:{pos}"
                 elif refcov == 1:
                     # one read, all columns of the read are returned
-                    self.assertEqual(
-                        len(columns),
-                        refcolumns,
-                        "pileup incomplete at position %i: got %i, expected %i " %
-                        (pos, len(columns), refcolumns))
+                    assert len(columns) == refcolumns, f"pileup incomplete at position {pos}"
 
     def testIterateTruncate(self):
         '''check random access per range'''
@@ -306,15 +263,15 @@ class TestIteratorColumnBAM(unittest.TestCase):
                 # this includes empty ranges
                 self.checkRange(contig, start, start + 90, truncate=True)
 
-    def tearDown(self):
+    def teardown_method(self):
         self.samfile.close()
 
 
-class TestIteratorColumn2(unittest.TestCase):
+class TestIteratorColumn2:
 
     '''test iterator column against contents of ex1.bam.'''
 
-    def setUp(self):
+    def setup_method(self):
         self.samfile = pysam.AlignmentFile(
             os.path.join(BAM_DATADIR, "ex1.bam"),
             "rb")
@@ -329,33 +286,33 @@ class TestIteratorColumn2(unittest.TestCase):
         # note that ranges in regions start from 1
         p = self.samfile.pileup(region='chr1:170-172', truncate=True)
         columns = [x.reference_pos for x in p]
-        self.assertEqual(len(columns), 3)
-        self.assertEqual(columns, [169, 170, 171])
+        assert len(columns) == 3
+        assert columns == [169, 170, 171]
 
         p = self.samfile.pileup('chr1', 169, 172, truncate=True)
         columns = [x.reference_pos for x in p]
 
-        self.assertEqual(len(columns), 3)
-        self.assertEqual(columns, [169, 170, 171])
+        assert len(columns) == 3
+        assert columns == [169, 170, 171]
 
-    @unittest.skipIf(sys.platform.startswith("netbsd"), "exercises invalid accesses, crashing on NetBSD")
+    @pytest.mark.skipif(sys.platform.startswith("netbsd"), reason="exercises invalid accesses, crashing on NetBSD")
     def testAccessOnClosedIterator(self):
         '''see issue 131
 
         Accessing pileup data after iterator has closed.
         '''
         pcolumn = self.samfile.pileup('chr1', 170, 180).__next__()
-        self.assertRaises(ValueError, getattr, pcolumn, "pileups")
+        with pytest.raises(ValueError): pcolumn.pileups
 
     def testStr(self):
         '''test if PileupRead can be printed.'''
         iter = self.samfile.pileup('chr1', 170, 180)
         pcolumn = iter.__next__()
         s = str(pcolumn)
-        self.assertEqual(len(s.split("\n")), 2)
+        assert len(s.split("\n")) == 2
 
 
-class PileUpColumnTests(unittest.TestCase):
+class TestPileUpColumns:
 
     fn = os.path.join(BAM_DATADIR, "ex2.bam")
     fn_fasta = os.path.join(BAM_DATADIR, "ex1.fa")
@@ -363,26 +320,25 @@ class PileUpColumnTests(unittest.TestCase):
     def test_pileup_depths_are_equal(self):
         samtools_result = PileupTestUtils.build_depth_with_samtoolspipe(self.fn)
         pysam_result = PileupTestUtils.build_depth_with_filter_with_pysam(self.fn)
-        self.assertEqual(pysam_result, samtools_result)
+        assert pysam_result == samtools_result
 
     def test_pileup_query_bases_without_reference_are_equal(self):
         samtools_result = PileupTestUtils.build_query_bases_with_samtoolspipe(self.fn)
         pysam_result = PileupTestUtils.build_query_bases_with_pysam(self.fn)
-        self.assertEqual(["".join(x) for x in pysam_result], samtools_result)
+        assert ["".join(x) for x in pysam_result] == samtools_result
 
     def test_pileup_query_bases_with_reference_are_equal(self):
         samtools_result = PileupTestUtils.build_query_bases_with_samtoolspipe(self.fn, "-f", self.fn_fasta)
         with pysam.FastaFile(self.fn_fasta) as fasta:
             pysam_result = PileupTestUtils.build_query_bases_with_pysam(self.fn, fastafile=fasta, stepper="samtools")
-        self.assertEqual(["".join(x) for x in pysam_result], samtools_result)
+        assert ["".join(x) for x in pysam_result] == samtools_result
         
     def test_pileup_query_qualities_are_equal(self):
         samtools_result = PileupTestUtils.build_query_qualities_with_samtoolspipe(self.fn)
         pysam_result = PileupTestUtils.build_query_qualities_with_pysam(self.fn)
         pysam_result = [
             [chr(min(126, x + 33)) for x in l] for l in pysam_result]
-        self.assertEqual("".join(flatten_nested_list(pysam_result)),
-                         "".join(flatten_nested_list(samtools_result)))
+        assert "".join(flatten_nested_list(pysam_result)) == "".join(flatten_nested_list(samtools_result))
 
     def test_pileup_mapping_qualities_are_equal(self):
         samtools_result = PileupTestUtils.build_mapping_qualities_with_samtoolspipe(self.fn)
@@ -391,8 +347,7 @@ class PileUpColumnTests(unittest.TestCase):
         pysam_result = [
             [chr(min(126, x + 33)) for x in l] for l in pysam_result]
 
-        self.assertEqual("".join(flatten_nested_list(pysam_result)),
-                         "".join(flatten_nested_list(samtools_result)))
+        assert "".join(flatten_nested_list(pysam_result)) == "".join(flatten_nested_list(samtools_result))
 
     def test_pileup_query_qualities_from_pileups_are_equal(self):
         samtools_result = PileupTestUtils.build_query_qualities_with_samtoolspipe(self.fn)
@@ -400,8 +355,4 @@ class PileUpColumnTests(unittest.TestCase):
         pysam_result = [
             "".join([chr(min(126, x + 33)) for x in l]) for l in pysam_result]
 
-        self.assertEqual(pysam_result, samtools_result)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert pysam_result == samtools_result

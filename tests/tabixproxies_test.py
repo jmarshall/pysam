@@ -1,4 +1,3 @@
-import unittest
 import pysam
 import os
 import re
@@ -11,108 +10,102 @@ def setUpModule():
     make_data_files(TABIX_DATADIR)
 
 
-class TestBED(unittest.TestCase):
+class TestBED:
 
     filename = os.path.join(TABIX_DATADIR, "fivecolumns.bed.gz")
 
-    def setUp(self):
+    def setup_method(self):
         self.tabix = pysam.TabixFile(self.filename)
 
-    def tearDown(self):
+    def teardown_method(self):
         self.tabix.close()
 
     def testAssignmentToTargetList(self):
         for row in self.tabix.fetch(parser=pysam.asTuple()):
             # Test that *others gets the right columns...
             contig, start, end, *others = row
-            self.assertEqual(3 + len(others), len(row))
+            assert 3 + len(others) == len(row)
 
             # ...and that a TupleProxy can be assigned from more than once
             contig, *others = row
-            self.assertEqual(1 + len(others), len(row))
+            assert 1 + len(others) == len(row)
 
 
-class TestParser(unittest.TestCase):
+class TestParser:
 
     filename = os.path.join(TABIX_DATADIR, "example.gtf.gz")
 
-    def setUp(self):
-
+    def setup_method(self):
         self.tabix = pysam.TabixFile(self.filename)
         self.compare = load_and_convert(self.filename)
 
-    def tearDown(self):
+    def teardown_method(self):
         self.tabix.close()
 
     def testRead(self):
-
         for x, r in enumerate(self.tabix.fetch(parser=pysam.asTuple())):
             c = self.compare[x]
-            self.assertEqual(c, list(r))
-            self.assertEqual(len(c), len(r))
+            assert c == list(r)
+            assert len(c) == len(r)
 
             # test indexing
             for y in range(0, len(r)):
-                self.assertEqual(c[y], r[y])
+                assert c[y] == r[y]
 
             # test slicing access
             for y in range(0, len(r) - 1):
                 for cc in range(y + 1, len(r)):
-                    self.assertEqual(c[y:cc],
-                                     r[y:cc])
-            self.assertEqual("\t".join(map(str, c)),
-                             str(r))
+                    assert c[y:cc] == r[y:cc]
+            assert "\t".join(map(str, c)) == str(r)
 
     def testAssignmentToTargetList(self):
         for x, r in enumerate(self.tabix.fetch(parser=pysam.asTuple())):
             col1, col2, *others, colN = r
-            self.assertEqual(2 + len(others) + 1, len(r))
+            assert 2 + len(others) + 1 == len(r)
 
     def testWrite(self):
-
         for x, r in enumerate(self.tabix.fetch(parser=pysam.asTuple())):
-            self.assertEqual(self.compare[x], list(r))
+            assert self.compare[x] == list(r)
             c = list(r)
             for y in range(len(r)):
                 r[y] = "test_%05i" % y
                 c[y] = "test_%05i" % y
-            self.assertEqual([x for x in c], list(r))
-            self.assertEqual("\t".join(c), str(r))
+            assert [x for x in c] == list(r)
+            assert "\t".join(c) == str(r)
             # check second assignment
             for y in range(len(r)):
                 r[y] = "test_%05i" % y
-            self.assertEqual([x for x in c], list(r))
-            self.assertEqual("\t".join(c), str(r))
+            assert [x for x in c] == list(r)
+            assert "\t".join(c) == str(r)
 
     def testUnset(self):
         for x, r in enumerate(self.tabix.fetch(parser=pysam.asTuple())):
-            self.assertEqual(self.compare[x], list(r))
+            assert self.compare[x] == list(r)
             c = list(r)
             e = list(r)
             for y in range(len(r)):
                 r[y] = None
                 c[y] = None
                 e[y] = ""
-                self.assertEqual(c, list(r))
-                self.assertEqual("\t".join(e), str(r))
+                assert c == list(r)
+                assert "\t".join(e) == str(r)
 
     def testIteratorCompressed(self):
         '''test iteration from compressed file.'''
         with gzip.open(self.filename) as infile:
             for x, r in enumerate(pysam.tabix_iterator(
                     infile, pysam.asTuple())):
-                self.assertEqual(self.compare[x], list(r))
-                self.assertEqual(len(self.compare[x]), len(r))
+                assert self.compare[x] == list(r)
+                assert len(self.compare[x]) == len(r)
 
                 # test indexing
                 for c in range(0, len(r)):
-                    self.assertEqual(self.compare[x][c], r[c])
+                    assert self.compare[x][c] == r[c]
 
                 # test slicing access
                 for c in range(0, len(r) - 1):
                     for cc in range(c + 1, len(r)):
-                        self.assertEqual(self.compare[x][c:cc],
-                                         r[c:cc])
+                        assert self.compare[x][c:cc] == r[c:cc]
 
     def testIteratorUncompressed(self):
         '''test iteration from uncompressed file.'''
@@ -124,29 +117,28 @@ class TestParser(unittest.TestCase):
         with open(tmpfilename) as infile:
             for x, r in enumerate(pysam.tabix_iterator(
                     infile, pysam.asTuple())):
-                self.assertEqual(self.compare[x], list(r))
-                self.assertEqual(len(self.compare[x]), len(r))
+                assert self.compare[x] == list(r)
+                assert len(self.compare[x]) == len(r)
 
                 # test indexing
                 for c in range(0, len(r)):
-                    self.assertEqual(self.compare[x][c], r[c])
+                    assert self.compare[x][c] == r[c]
 
                 # test slicing access
                 for c in range(0, len(r) - 1):
                     for cc in range(c + 1, len(r)):
-                        self.assertEqual(self.compare[x][c:cc],
-                                         r[c:cc])
+                        assert self.compare[x][c:cc] == r[c:cc]
 
         os.unlink(tmpfilename)
 
     def testCopy(self):
         a = next(self.tabix.fetch(parser=pysam.asTuple()))
         b = copy.copy(a)
-        self.assertEqual(a, b)
+        assert a == b
 
         a = next(self.tabix.fetch(parser=pysam.asGTF()))
         b = copy.copy(a)
-        self.assertEqual(a, b)
+        assert a == b
 
 
 class TestGTF(TestParser):
@@ -155,27 +147,24 @@ class TestGTF(TestParser):
 
     def build_attribute_string(self, d):
         """build attribute string from dictionary d"""
-        s = "; ".join(["{} \"{}\"".format(x, y) for (x, y) in d.items()]) + ";"
+        s = "; ".join([f'{x} "{y}"' for (x, y) in d.items()]) + ";"
         # remove quotes around numeric values
         s = re.sub(r'"(\d+)"', r'\1', s)
         return s
 
     def testRead(self):
-
         for x, r in enumerate(self.tabix.fetch(parser=self.parser())):
             c = self.compare[x]
-            self.assertEqual(len(c), len(r))
-            self.assertEqual(list(c), list(r))
-            self.assertEqual(c, str(r).split("\t"))
-            self.assertTrue(r.gene_id.startswith("ENSG"))
+            assert len(c) == len(r)
+            assert list(c) == list(r)
+            assert c == str(r).split("\t")
+            assert r.gene_id.startswith("ENSG")
             if r.feature != 'gene':
-                self.assertTrue(r.transcript_id.startswith("ENST"))
-            self.assertEqual(c[0], r.contig)
-            self.assertEqual("\t".join(map(str, c)),
-                             str(r))
+                assert r.transcript_id.startswith("ENST")
+            assert c[0] == r.contig
+            assert "\t".join(map(str, c)) == str(r)
 
     def test_setting_fields(self):
-
         r = next(self.tabix.fetch(parser=self.parser()))
 
         r.contig = r.contig + "_test_contig"
@@ -189,137 +178,130 @@ class TestGTF(TestParser):
         r.attributes = 'gene_id "0001";'
         r.transcript_id = "0002"
         sr = str(r)
-        self.assertTrue("_test_contig" in sr)
-        self.assertTrue("_test_source" in sr)
-        self.assertTrue("_test_feature" in sr)
-        self.assertTrue("gene_id \"0001\"" in sr)
-        self.assertTrue("transcript_id \"0002\"" in sr)
+        assert "_test_contig" in sr
+        assert "_test_source" in sr
+        assert "_test_feature" in sr
+        assert 'gene_id "0001"' in sr
+        assert 'transcript_id "0002"' in sr
 
     def test_setAttribute_makes_changes(self):
-
         r = next(self.tabix.fetch(parser=self.parser()))
         r.setAttribute("transcript_id", "abcd")
         sr = str(r)
-        self.assertEqual(r.transcript_id, "abcd")
-        self.assertTrue("transcript_id \"abcd\"" in sr)
+        assert r.transcript_id == "abcd"
+        assert 'transcript_id "abcd"' in sr
 
     def test_added_attribute_is_output(self):
         r = next(self.tabix.fetch(parser=self.parser()))
 
         r.new_int_attribute = 12
-        self.assertTrue("new_int_attribute 12" in str(r).split("\t")[8])
+        assert "new_int_attribute 12" in str(r).split("\t")[8]
 
         r.new_float_attribute = 12.0
-        self.assertTrue("new_float_attribute 12.0" in str(r).split("\t")[8])
+        assert "new_float_attribute 12.0" in str(r).split("\t")[8]
 
         r.new_text_attribute = "abc"
-        self.assertTrue("new_text_attribute \"abc\"" in str(r).split("\t")[8])
+        assert 'new_text_attribute "abc"' in str(r).split("\t")[8]
 
     def test_setting_start_is_one_based(self):
-
         r = next(self.tabix.fetch(parser=self.parser()))
         r.start = 1800
-        self.assertEqual(r.start, 1800)
-        self.assertEqual(str(r).split("\t")[3], "1801")
+        assert r.start == 1800
+        assert str(r).split("\t")[3] == "1801"
 
     def test_setting_end_is_one_based(self):
-
         r = next(self.tabix.fetch(parser=self.parser()))
         r.end = 2100
-        self.assertEqual(r.end, 2100)
-        self.assertEqual(str(r).split("\t")[4], "2100")
+        assert r.end == 2100
+        assert str(r).split("\t")[4] == "2100"
 
     def test_setting_frame_to_none_produces_dot(self):
-
         r = next(self.tabix.fetch(parser=self.parser()))
         r.frame = None
-        self.assertEqual(str(r).split("\t")[7], ".")
+        assert str(r).split("\t")[7] == "."
 
         r.frame = 2
-        self.assertEqual(str(r).split("\t")[7], "2")
+        assert str(r).split("\t")[7] == "2"
 
         r = next(self.tabix.fetch(parser=self.parser()))
         r.frame = "."
-        self.assertEqual(r.frame, None)
-        self.assertEqual(str(r).split("\t")[7], ".")
+        assert r.frame is None
+        assert str(r).split("\t")[7] == "."
 
     def test_setting_source_to_none_produces_dot(self):
-
         r = next(self.tabix.fetch(parser=self.parser()))
         r.source = None
-        self.assertEqual(str(r).split("\t")[1], ".")
+        assert str(r).split("\t")[1] == "."
 
         r.source = "source"
-        self.assertEqual(str(r).split("\t")[1], "source")
+        assert str(r).split("\t")[1] == "source"
 
         r = next(self.tabix.fetch(parser=self.parser()))
         r.source = "."
-        self.assertEqual(r.source, None)
-        self.assertEqual(str(r).split("\t")[1], ".")
+        assert r.source is None
+        assert str(r).split("\t")[1] == "."
 
     def test_setting_feature_to_none_produces_dot(self):
-
         r = next(self.tabix.fetch(parser=self.parser()))
         r.feature = None
-        self.assertEqual(str(r).split("\t")[2], ".")
+        assert str(r).split("\t")[2] == "."
 
         r.feature = "feature"
-        self.assertEqual(str(r).split("\t")[2], "feature")
+        assert str(r).split("\t")[2] == "feature"
 
         r = next(self.tabix.fetch(parser=self.parser()))
         r.feature = "."
-        self.assertEqual(r.feature, None)
-        self.assertEqual(str(r).split("\t")[2], ".")
+        assert r.feature is None
+        assert str(r).split("\t")[2] == "."
 
     def test_setting_strand_to_none_produces_dot(self):
-
         r = next(self.tabix.fetch(parser=self.parser()))
         r.strand = None
-        self.assertEqual(str(r).split("\t")[6], ".")
+        assert str(r).split("\t")[6] == "."
 
         r.strand = "-"
-        self.assertEqual(str(r).split("\t")[6], "-")
+        assert str(r).split("\t")[6] == "-"
 
         r = next(self.tabix.fetch(parser=self.parser()))
         r.strand = "."
-        self.assertEqual(r.strand, None)
-        self.assertEqual(str(r).split("\t")[6], ".")
+        assert r.strand is None
+        assert str(r).split("\t")[6] == "."
 
     def test_setting_score_to_none_produces_dot(self):
-
         r = next(self.tabix.fetch(parser=self.parser()))
         r.score = None
-        self.assertEqual(str(r).split("\t")[5], ".")
+        assert str(r).split("\t")[5] == "."
 
         r.score = 12.0
-        self.assertEqual(str(r).split("\t")[5], "12.0")
+        assert str(r).split("\t")[5] == "12.0"
 
         r.score = -12.0
-        self.assertEqual(str(r).split("\t")[5], "-12.0")
+        assert str(r).split("\t")[5] == "-12.0"
 
         r = next(self.tabix.fetch(parser=self.parser()))
         r.score = "."
-        self.assertEqual(r.score, None)
-        self.assertEqual(str(r).split("\t")[5], ".")
+        assert r.score is None
+        assert str(r).split("\t")[5] == "."
 
         r.score = 12
-        self.assertEqual(str(r).split("\t")[5], "12")
+        assert str(r).split("\t")[5] == "12"
 
         r.score = -12
-        self.assertEqual(str(r).split("\t")[5], "-12")
+        assert str(r).split("\t")[5] == "-12"
 
     def test_asdict_contains_attributes(self):
         r = next(self.tabix.fetch(parser=self.parser()))
         d = r.to_dict()
         c = self.compare[0]
         s = self.build_attribute_string(d)
-        self.assertEqual(s, c[8])
+        assert s == c[8]
 
     def test_asdict_can_be_modified(self):
         r = next(self.tabix.fetch(parser=self.parser()))
         d = r.to_dict()
         d["gene_id"] = "new_gene_id"
-        self.assertTrue("gene_id \"new_gene_id\"", str(r))
+        expected = 'gene_id "new_gene_id"' if self.parser == pysam.asGTF else "gene_id=new_gene_id"
+        assert expected in str(r)
 
 
 class TestGFF3(TestGTF):
@@ -332,24 +314,17 @@ class TestGFF3(TestGTF):
         s = ";".join(["{}={}".format(x, y) for (x, y) in d.items()]) + ";"
         return s
 
-    def build_attribute_string(self, d):
-        """build attribute string from dictionary d"""
-        s = ";".join(["{}={}".format(x, y) for (x, y) in d.items()]) + ";"
-        return s
-
     def testRead(self):
         for x, r in enumerate(self.tabix.fetch(parser=self.parser())):
             c = self.compare[x]
-            self.assertEqual(len(c), len(r))
-            self.assertEqual(list(c), list(r))
-            self.assertEqual(c, str(r).split("\t"))
-            self.assertEqual(c[0], r.contig)
-            self.assertEqual("\t".join(map(str, c)),
-                             str(r))
-            self.assertTrue(r.ID.startswith("MI00"))
+            assert len(c) == len(r)
+            assert list(c) == list(r)
+            assert c == str(r).split("\t")
+            assert c[0] == r.contig
+            assert "\t".join(map(str, c)) == str(r)
+            assert r.ID.startswith("MI00")
 
     def test_setting_fields(self):
-
         for r in self.tabix.fetch(parser=self.parser()):
             r.contig = r.contig + "_test_contig"
             r.source = "test_source"
@@ -361,31 +336,26 @@ class TestGFF3(TestGTF):
             r.frame = 0
             r.ID = "test"
             sr = str(r)
-            self.assertTrue("test_contig" in sr)
-            self.assertTrue("test_source" in sr)
-            self.assertTrue("test_feature" in sr)
-            self.assertTrue("ID=test" in sr)
+            assert "test_contig" in sr
+            assert "test_source" in sr
+            assert "test_feature" in sr
+            assert "ID=test" in sr
 
     def test_setAttribute_makes_changes(self):
-
         r = next(self.tabix.fetch(parser=self.parser()))
         r.setAttribute("transcript_id", "abcd")
         sr = str(r)
-        self.assertEqual(r.transcript_id, "abcd")
-        self.assertTrue("transcript_id=abcd" in sr)
+        assert r.transcript_id == "abcd"
+        assert "transcript_id=abcd" in sr
 
     def test_added_attribute_is_output(self):
         r = next(self.tabix.fetch(parser=self.parser()))
 
         r.new_int_attribute = 12
-        self.assertTrue("new_int_attribute=12" in str(r).split("\t")[8])
+        assert "new_int_attribute=12" in str(r).split("\t")[8]
 
         r.new_float_attribute = 12.0
-        self.assertTrue("new_float_attribute=12.0" in str(r).split("\t")[8])
+        assert "new_float_attribute=12.0" in str(r).split("\t")[8]
 
         r.new_text_attribute = "abc"
-        self.assertTrue("new_text_attribute=abc" in str(r).split("\t")[8])
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "new_text_attribute=abc" in str(r).split("\t")[8]

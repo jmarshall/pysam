@@ -1,17 +1,11 @@
-#!/usr/bin/env python
-'''unit testing code for pysam.
-
-Execute in the :file:`tests` directory as it requires the Makefile
-and data files located there.
-'''
-
 import os
 import shutil
 import gzip
 import pysam
-import unittest
 import glob
+import pytest
 import re
+
 from TestUtils import checkBinaryEqual, checkGZBinaryEqual, check_url, \
     load_and_convert, make_data_files, TABIX_DATADIR, get_temp_filename
 
@@ -36,12 +30,11 @@ def splitToBytes(s):
     return [x.encode("ascii") for x in s.split("\t")]
 
 
-class TestIndexing(unittest.TestCase):
+class TestIndexing:
     filename = os.path.join(TABIX_DATADIR, "example.gtf.gz")
     filename_idx = os.path.join(TABIX_DATADIR, "example.gtf.gz.tbi")
 
-    def setUp(self):
-
+    def setup_method(self):
         self.tmpfilename = get_temp_filename(suffix="gtf.gz")
         shutil.copyfile(self.filename, self.tmpfilename)
 
@@ -49,8 +42,7 @@ class TestIndexing(unittest.TestCase):
         '''test indexing via preset.'''
 
         pysam.tabix_index(self.tmpfilename, preset="gff")
-        self.assertTrue(checkGZBinaryEqual(
-            self.tmpfilename + ".tbi", self.filename_idx))
+        assert checkGZBinaryEqual(self.tmpfilename + ".tbi", self.filename_idx)
 
     def test_indexing_to_custom_location_works(self):
         '''test indexing a file with a non-default location.'''
@@ -58,7 +50,7 @@ class TestIndexing(unittest.TestCase):
         index_path = get_temp_filename(suffix='custom.tbi')
         pysam.tabix_index(self.tmpfilename, preset="gff",
                           index=index_path, force=True)
-        self.assertTrue(checkGZBinaryEqual(index_path, self.filename_idx))
+        assert checkGZBinaryEqual(index_path, self.filename_idx)
         os.unlink(index_path)
 
     def test_indexing_with_explict_columns_works(self):
@@ -70,8 +62,7 @@ class TestIndexing(unittest.TestCase):
                           end_col=4,
                           line_skip=0,
                           zerobased=False)
-        self.assertTrue(checkGZBinaryEqual(
-            self.tmpfilename + ".tbi", self.filename_idx))
+        assert checkGZBinaryEqual(self.tmpfilename + ".tbi", self.filename_idx)
 
     def test_indexing_with_lineskipping_works(self):
         '''test indexing via preset and lineskip.'''
@@ -81,21 +72,20 @@ class TestIndexing(unittest.TestCase):
                           end_col=4,
                           line_skip=1,
                           zerobased=False)
-        self.assertFalse(checkGZBinaryEqual(
-            self.tmpfilename + ".tbi", self.filename_idx))
+        assert not checkGZBinaryEqual(self.tmpfilename + ".tbi", self.filename_idx)
 
-    def tearDown(self):
+    def teardown_method(self):
         os.unlink(self.tmpfilename)
         if os.path.exists(self.tmpfilename + ".tbi"):
             os.unlink(self.tmpfilename + ".tbi")
 
 
-class TestCompression(unittest.TestCase):
+class TestCompression:
     filename = os.path.join(TABIX_DATADIR, "example.gtf.gz")
     filename_idx = os.path.join(TABIX_DATADIR, "example.gtf.gz.tbi")
     preset = "gff"
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpfilename = get_temp_filename(suffix="gtf")
         with gzip.open(self.filename, "rb") as infile, \
                 open(self.tmpfilename, "wb") as outfile:
@@ -111,7 +101,7 @@ class TestCompression(unittest.TestCase):
 
         pysam.tabix_index(self.tmpfilename, preset=self.preset)
         # check if uncompressed file has been removed
-        self.assertEqual(os.path.exists(self.tmpfilename), False)
+        assert not os.path.exists(self.tmpfilename)
         checkBinaryEqual(self.tmpfilename + ".gz", self.filename)
         checkBinaryEqual(self.tmpfilename + ".gz.tbi", self.filename_idx)
 
@@ -123,7 +113,7 @@ class TestCompression(unittest.TestCase):
         checkBinaryEqual(self.tmpfilename + ".gz", self.filename)
         checkBinaryEqual(self.tmpfilename + ".gz.tbi", self.filename_idx)
 
-    def tearDown(self):
+    def teardown_method(self):
         if os.path.exists(self.tmpfilename):
             os.unlink(self.tmpfilename)
         if os.path.exists(self.tmpfilename + ".gz"):
@@ -150,12 +140,11 @@ class TestCompressionVCF(TestCompression):
     preset = "vcf"
 
 
-class IterationTest(unittest.TestCase):
+class IterationTest:
 
     with_comments = False
 
-    def setUp(self):
-
+    def setup_method(self):
         lines = []
         with gzip.open(self.filename, "rb") as inf:
             for line in inf:
@@ -209,19 +198,10 @@ class IterationTest(unittest.TestCase):
         a = set(result)
         b = set(ref)
 
-        self.assertEqual(
-            len(result), len(ref),
-            "unexpected number of results: "
-            "result=%i, expected ref=%i, differences are %s: %s"
-            % (len(result), len(ref),
-               a.difference(b),
-               b.difference(a)))
+        assert len(result) == len(ref), f"differences are {a.difference(b)}, {b.difference(a)}"
 
         for x, d in enumerate(list(zip(result, ref))):
-            self.assertEqual(
-                d[0], d[1],
-                "unexpected results in pair %i:\n'%s', expected\n'%s'" %
-                (x, d[0], d[1]))
+            assert d[0] == d[1], f"unexpected results in pair {x}:\n{d[0]!r}', expected\n{d[1]!r}"
 
 
 class TestGZFile(IterationTest):
@@ -229,8 +209,8 @@ class TestGZFile(IterationTest):
     filename = os.path.join(TABIX_DATADIR, "example.gtf.gz")
     with_comments = True
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self):
+        super().setup_method()
         self.gzfile = pysam.GZIterator(self.filename)
 
     def testAll(self):
@@ -247,25 +227,20 @@ class TestIterationWithoutComments(IterationTest):
     filename = os.path.join(TABIX_DATADIR,
                             "example.gtf.gz")
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self):
+        super().setup_method()
         self.tabix = pysam.TabixFile(self.filename)
 
-    def tearDown(self):
+    def teardown_method(self):
         self.tabix.close()
 
     def testRegionStrings(self):
-        """test if access with various region strings
-        works"""
+        """test if access with various region strings works"""
 
-        self.assertEqual(218, len(list(
-            self.tabix.fetch("chr1"))))
-        self.assertEqual(218, len(list(
-            self.tabix.fetch("chr1", 1000))))
-        self.assertEqual(218, len(list(
-            self.tabix.fetch("chr1", end=1000000))))
-        self.assertEqual(218, len(list(
-            self.tabix.fetch("chr1", 1000, 1000000))))
+        assert len(list(self.tabix.fetch("chr1"))) == 218
+        assert len(list(self.tabix.fetch("chr1", 1000))) == 218
+        assert len(list(self.tabix.fetch("chr1", end=1000000))) == 218
+        assert len(list(self.tabix.fetch("chr1", 1000, 1000000))) == 218
 
     def testAll(self):
         result = list(self.tabix.fetch())
@@ -317,28 +292,27 @@ class TestIterationWithoutComments(IterationTest):
     def testInvalidIntervals(self):
 
         # invalid intervals (start > end)
-        self.assertRaises(ValueError, self.tabix.fetch, "chr1", 0, -10)
-        self.assertRaises(ValueError, self.tabix.fetch, "chr1", 200, 0)
+        with pytest.raises(ValueError): self.tabix.fetch("chr1", 0, -10)
+        with pytest.raises(ValueError): self.tabix.fetch("chr1", 200, 0)
 
         # out of range intervals
-        self.assertRaises(ValueError, self.tabix.fetch, "chr1", -10, 200)
-        self.assertRaises(ValueError, self.tabix.fetch, "chr1", -10, -20)
+        with pytest.raises(ValueError): self.tabix.fetch("chr1", -10, 200)
+        with pytest.raises(ValueError): self.tabix.fetch("chr1", -10, -20)
 
         # unknown chromosome
-        self.assertRaises(ValueError, self.tabix.fetch, "chrUn")
+        with pytest.raises(ValueError): self.tabix.fetch("chrUn")
 
         # out of range access
         # to be implemented
-        # self.assertRaises(IndexError, self.tabix.fetch, "chr1", 1000000, 2000000)
+        # wth pytest.raises(IndexError): self.tabix.fetch("chr1", 1000000, 2000000)
 
         # raise no error for empty intervals
         self.tabix.fetch("chr1", 100, 100)
 
     def testGetContigs(self):
-        self.assertEqual(sorted(self.tabix.contigs), ["chr1", "chr2"])
+        assert sorted(self.tabix.contigs) == ["chr1", "chr2"]
         # check that contigs is read-only
-        self.assertRaises(
-            AttributeError, setattr, self.tabix, "contigs", ["chr1", "chr2"])
+        with pytest.raises(AttributeError): self.tabix.contigs = ["chr1", "chr2"]
 
     def testHeader(self):
         ref = []
@@ -350,7 +324,7 @@ class TestIterationWithoutComments(IterationTest):
                 ref.append(x[:-1])
 
         header = list(self.tabix.header)
-        self.assertEqual(ref, header)
+        assert ref == header
 
     def testReopening(self):
         '''test repeated opening of the same file.'''
@@ -374,15 +348,14 @@ class TestIterationWithComments(TestIterationWithoutComments):
     filename = os.path.join(TABIX_DATADIR, "example_comments.gtf.gz")
 
 
-class TestIterators(unittest.TestCase):
+class TestIterators:
     filename = os.path.join(TABIX_DATADIR, "example.gtf.gz")
 
     iterator = pysam.tabix_generic_iterator
     parser = pysam.asTuple
     is_compressed = False
 
-    def setUp(self):
-
+    def setup_method(self):
         self.tabix = pysam.TabixFile(self.filename)
         self.compare = load_and_convert(self.filename)
         self.tmpfilename_uncompressed = 'tmp_TestIterators'
@@ -390,7 +363,7 @@ class TestIterators(unittest.TestCase):
                 open(self.tmpfilename_uncompressed, "wb") as outfile:
             outfile.write(infile.read())
 
-    def tearDown(self):
+    def teardown_method(self):
         self.tabix.close()
         os.unlink(self.tmpfilename_uncompressed)
 
@@ -406,18 +379,17 @@ class TestIterators(unittest.TestCase):
 
         with self.open() as infile:
             for x, r in enumerate(self.iterator(infile, self.parser())):
-                self.assertEqual(self.compare[x], list(r))
-                self.assertEqual(len(self.compare[x]), len(r))
+                assert self.compare[x] == list(r)
+                assert len(self.compare[x]) == len(r)
 
                 # test indexing
                 for c in range(0, len(r)):
-                    self.assertEqual(self.compare[x][c], r[c])
+                    assert self.compare[x][c] == r[c]
 
                 # test slicing access
                 for c in range(0, len(r) - 1):
                     for cc in range(c + 1, len(r)):
-                        self.assertEqual(self.compare[x][c:cc],
-                                         r[c:cc])
+                        assert self.compare[x][c:cc] == r[c:cc]
 
     def testClosedFile(self):
         '''test for error when iterating from closed file.'''
@@ -425,7 +397,7 @@ class TestIterators(unittest.TestCase):
         infile.close()
 
         # iterating from a closed file should raise a value error
-        self.assertRaises(ValueError, self.iterator, infile, self.parser())
+        with pytest.raises(ValueError): self.iterator(infile, self.parser())
 
     def testClosedFileIteration(self):
         '''test for error when iterating from file that has been closed'''
@@ -436,7 +408,7 @@ class TestIterators(unittest.TestCase):
         x = next(i)
         infile.close()
         # Not implemented
-        # self.assertRaises(ValueError, i.next)
+        # with pytest.raises(ValueError): next(i)
 
 
 class TestIteratorsGenericCompressed(TestIterators):
@@ -453,7 +425,7 @@ class TestIteratorsFileUncompressed(TestIterators):
     is_compressed = False
 
 
-class TestIterationMalformattedGTFFiles(unittest.TestCase):
+class TestIterationMalformattedGTFFiles:
 
     '''test reading from malformatted gtf files.'''
 
@@ -468,7 +440,7 @@ class TestIterationMalformattedGTFFiles(unittest.TestCase):
             iterator = self.iterator(
                 infile,
                 parser=self.parser())
-            self.assertRaises(ValueError, iterator.__next__)
+            with pytest.raises(ValueError): next(iterator)
 
     def testGTFTooFewFields(self):
 
@@ -478,89 +450,87 @@ class TestIterationMalformattedGTFFiles(unittest.TestCase):
             iterator = self.iterator(
                 infile,
                 parser=self.parser())
-            self.assertRaises(ValueError, iterator.__next__)
+            with pytest.raises(ValueError): next(iterator)
 
 
-class TestBed(unittest.TestCase):
+class TestBed:
     filename = os.path.join(TABIX_DATADIR, "example.bed.gz")
 
-    def setUp(self):
-
+    def setup_method(self):
         self.tabix = pysam.TabixFile(self.filename)
         self.compare = load_and_convert(self.filename)
 
-    def tearDown(self):
+    def teardown_method(self):
         self.tabix.close()
 
     def testRead(self):
 
         for x, r in enumerate(self.tabix.fetch(parser=pysam.asBed())):
             c = self.compare[x]
-            self.assertEqual(len(c), len(r))
-            self.assertEqual(c, str(r).split("\t"))
-            self.assertEqual(c[0], r.contig)
-            self.assertEqual(int(c[1]), r.start)
-            self.assertEqual(int(c[2]), r.end)
+            assert len(c) == len(r)
+            assert c == str(r).split("\t")
+            assert c[0] == r.contig
+            assert int(c[1]) == r.start
+            assert int(c[2]) == r.end
             # Needs lambda so that the property getter isn't called too soon
-            self.assertRaises(KeyError, lambda: r.name)
-            self.assertRaises(KeyError, lambda: r.score)
-            self.assertEqual(list(c), list(r))
-            self.assertEqual("\t".join(map(str, c)),
-                             str(r))
+            with pytest.raises(KeyError): r.name
+            with pytest.raises(KeyError): r.score
+            assert list(c) == list(r)
+            assert "\t".join(map(str, c)) == str(r)
 
     def testWrite(self):
 
         for x, r in enumerate(self.tabix.fetch(parser=pysam.asBed())):
             c = self.compare[x]
-            self.assertEqual(c, str(r).split("\t"))
-            self.assertEqual(list(c), list(r))
+            assert c == str(r).split("\t")
+            assert list(c) == list(r)
 
             r.contig = "test"
-            self.assertEqual("test", r.contig)
-            self.assertEqual("test", r[0])
+            assert r.contig == "test"
+            assert r[0] == "test"
 
             r.start += 1
-            self.assertEqual(int(c[1]) + 1, r.start)
-            self.assertEqual(str(int(c[1]) + 1), r[1])
+            assert int(c[1]) + 1 == r.start
+            assert str(int(c[1]) + 1) == r[1]
 
             r.end += 1
-            self.assertEqual(int(c[2]) + 1, r.end)
-            self.assertEqual(str(int(c[2]) + 1), r[2])
+            assert int(c[2]) + 1 == r.end
+            assert str(int(c[2]) + 1) == r[2]
 
-            with self.assertRaises(IndexError):
+            with pytest.raises(IndexError):
                 r.name = "test"
 
-            with self.assertRaises(IndexError):
+            with pytest.raises(IndexError):
                 r.score = 1
 
 
-class TestVCF(unittest.TestCase):
+class TestVCF:
 
     filename = os.path.join(TABIX_DATADIR, "example.vcf40")
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpfilename = get_temp_filename(suffix="vcf")
         shutil.copyfile(self.filename, self.tmpfilename)
         pysam.tabix_index(self.tmpfilename, preset="vcf")
 
-    def tearDown(self):
+    def teardown_method(self):
         os.unlink(self.tmpfilename + ".gz")
         if os.path.exists(self.tmpfilename + ".gz.tbi"):
             os.unlink(self.tmpfilename + ".gz.tbi")
 
 
-class TestUnicode(unittest.TestCase):
+class TestUnicode:
 
     '''test reading from a file with non-ascii characters.'''
 
     filename = os.path.join(TABIX_DATADIR, "example_unicode.vcf")
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpfilename = get_temp_filename(suffix="vcf")
         shutil.copyfile(self.filename, self.tmpfilename)
         pysam.tabix_index(self.tmpfilename, preset="vcf")
 
-    def tearDown(self):
+    def teardown_method(self):
         os.unlink(self.tmpfilename + ".gz")
         if os.path.exists(self.tmpfilename + ".gz.tbi"):
             os.unlink(self.tmpfilename + ".gz.tbi")
@@ -571,21 +541,18 @@ class TestUnicode(unittest.TestCase):
         with pysam.TabixFile(
                 self.tmpfilename + ".gz", encoding="ascii") as t:
             results = list(t.fetch(parser=pysam.asVCF()))
-            self.assertRaises(UnicodeDecodeError,
-                              getattr, results[1], "id")
+            with pytest.raises(UnicodeDecodeError):
+                results[1].id
 
         with pysam.TabixFile(
                 self.tmpfilename + ".gz", encoding="utf-8") as t:
             results = list(t.fetch(parser=pysam.asVCF()))
-            self.assertEqual(getattr(results[1], "id"), u"Rene\xe9")
+            assert results[1].id == "Reneé"
 
     def testFromVCF(self):
         self.vcf = pysam.VCF()
-        self.assertRaises(
-            UnicodeDecodeError,
-            self.vcf.connect,
-            self.tmpfilename + ".gz",
-            "ascii")
+        with pytest.raises(UnicodeDecodeError):
+            self.vcf.connect(self.tmpfilename + ".gz", "ascii")
         self.vcf.connect(self.tmpfilename + ".gz", encoding="utf-8")
         v = self.vcf.getsamples()[0]
 
@@ -596,15 +563,15 @@ class TestVCFFromTabix(TestVCF):
                "ref", "alt", "qual",
                "filter", "info", "format")
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self):
+        super().setup_method()
 
         self.tabix = pysam.TabixFile(self.tmpfilename + ".gz")
         self.compare = load_and_convert(self.filename)
 
-    def tearDown(self):
+    def teardown_method(self):
         self.tabix.close()
-        super().tearDown()
+        super().teardown_method()
 
     def testRead(self):
 
@@ -617,21 +584,18 @@ class TestVCFFromTabix(TestVCF):
                 if y == 8 and y == len(c):
                     continue
                 if field == "pos":
-                    self.assertEqual(int(c[y]) - 1, getattr(r, field))
-                    self.assertEqual(int(c[y]) - 1, r.pos)
+                    assert int(c[y]) - 1 == getattr(r, field)
+                    assert int(c[y]) - 1 == r.pos
                 else:
-                    self.assertEqual(c[y], getattr(r, field),
-                                     "mismatch in field %s: %s != %s" %
-                                     (field, c[y], getattr(r, field)))
+                    assert c[y] == getattr(r, field), f"mismatch in {field}"
             if len(c) == 8:
-                self.assertEqual(0, len(r))
+                assert len(r) == 0
             else:
-                self.assertEqual(len(c), len(r) + ncolumns)
+                assert len(c) == len(r) + ncolumns
 
             for y in range(len(c) - ncolumns):
-                self.assertEqual(c[ncolumns + y], r[y])
-            self.assertEqual("\t".join(map(str, c)),
-                             str(r))
+                assert c[ncolumns + y] == r[y]
+            assert "\t".join(map(str, c)) == str(r)
 
     def testWrite(self):
 
@@ -643,7 +607,7 @@ class TestVCFFromTabix(TestVCF):
             cmp_string = str(r)
             ref_string = "\t".join([x for x in c])
 
-            self.assertEqual(ref_string, cmp_string)
+            assert ref_string == cmp_string
 
             # set fields and compare field-wise
             for y, field in enumerate(self.columns):
@@ -652,28 +616,26 @@ class TestVCFFromTabix(TestVCF):
                     continue
                 if field == "pos":
                     rpos = getattr(r, field)
-                    self.assertEqual(int(c[y]) - 1, rpos)
-                    self.assertEqual(int(c[y]) - 1, r.pos)
+                    assert int(c[y]) - 1 == rpos
+                    assert int(c[y]) - 1 == r.pos
                     # increment pos by 1
                     setattr(r, field, rpos + 1)
-                    self.assertEqual(getattr(r, field), rpos + 1)
+                    assert getattr(r, field) == rpos + 1
                     c[y] = str(int(c[y]) + 1)
                 else:
                     setattr(r, field, "test_%i" % y)
                     c[y] = "test_%i" % y
-                    self.assertEqual(c[y], getattr(r, field),
-                                     "mismatch in field %s: %s != %s" %
-                                     (field, c[y], getattr(r, field)))
+                    assert c[y] == getattr(r, field), f"mismatch in field {field}"
 
             if len(c) == 8:
-                self.assertEqual(0, len(r))
+                assert len(r) == 0
             else:
-                self.assertEqual(len(c), len(r) + ncolumns)
+                assert len(c) == len(r) + ncolumns
 
             for y in range(len(c) - ncolumns):
                 c[ncolumns + y] = "test_%i" % y
                 r[y] = "test_%i" % y
-                self.assertEqual(c[ncolumns + y], r[y])
+                assert c[ncolumns + y] == r[y]
 
 
 class TestVCFFromVCF(TestVCF):
@@ -704,21 +666,20 @@ class TestVCFFromVCF(TestVCF):
     missing_value = "."
     missing_quality = -1
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self):
+        super().setup_method()
 
         self.vcf = pysam.VCF()
         self.compare = load_and_convert(self.filename, encode=False)
 
-    def tearDown(self):
-        super().tearDown()
+    def teardown_method(self):
+        super().teardown_method()
         self.vcf.close()
 
     def open_vcf(self, fn):
         return self.vcf.connect(fn)
 
     def get_failure_stage(self):
-
         fn = os.path.basename(self.filename)
         for x, msg in self.fail_on_opening:
             if "{}.vcf".format(x) == fn:
@@ -735,16 +696,13 @@ class TestVCFFromVCF(TestVCF):
         return None
 
     def testConnecting(self):
-
         if self.get_failure_stage() == "opening":
-            self.assertRaises(ValueError,
-                              self.open_vcf,
-                              self.tmpfilename + ".gz")
+            with pytest.raises(ValueError):
+                self.open_vcf(self.tmpfilename + ".gz")
         else:
             self.open_vcf(self.tmpfilename + ".gz")
 
     def get_iterator(self):
-
         with open(self.filename) as f:
             fn = os.path.basename(self.filename)
             return list(self.vcf.parse(f))
@@ -770,7 +728,6 @@ class TestVCFFromVCF(TestVCF):
             return r.split(";"), v
 
     def testParsing(self):
-
         if self.get_failure_stage() in ("opening", "parsing"):
             return
 
@@ -794,72 +751,45 @@ class TestVCFFromVCF(TestVCF):
 
                 val = self.get_field_value(r, field)
                 if field == "pos":
-                    self.assertEqual(int(c[y]) - self.coordinate_offset,
-                                     val)
+                    assert int(c[y]) - self.coordinate_offset == val
                 elif field == "alt" or field == "alts":
                     cc, vv = self.alt2value(c[y], val)
                     if cc != vv:
                         # import pdb; pdb.set_trace()
                         pass
-                    self.assertEqual(
-                        cc, vv,
-                        "mismatch in field %s: expected %s, got %s" %
-                        (field, cc, vv))
+                    assert cc == vv, f"mismatch in {field}"
 
                 elif field == "filter":
                     cc, vv = self.filter2value(c[y], val)
-                    self.assertEqual(
-                        cc, vv,
-                        "mismatch in field %s: expected %s, got %s" %
-                        (field, cc, vv))
+                    assert cc == vv, f"mismatch in {field}"
 
                 elif field == "info":
                     # tests for info field not implemented
                     pass
 
                 elif field == "qual" and c[y] == ".":
-                    self.assertEqual(
-                        self.missing_quality, val,
-                        "mismatch in field %s: expected %s, got %s" %
-                        (field, c[y], val))
+                    assert val == self.missing_quality, f"mismatch in {field}"
 
                 elif field == "format":
                     # format field converted to list
-                    self.assertEqual(
-                        c[y].split(":"), list(val),
-                        "mismatch in field %s: expected %s, got %s" %
-                        (field, c[y], val))
+                    assert c[y].split(":") == list(val), f"mismatch in {field}"
 
                 elif type(val) in (int, float):
                     if c[y] == ".":
-                        self.assertEqual(
-                            None, val,
-                            "mismatch in field %s: expected %s, got %s" %
-                            (field, c[y], val))
+                        assert val is None, f"mismatch in {field}"
                     else:
-                        self.assertAlmostEqual(
-                            float(c[y]), float(val), 2,
-                            "mismatch in field %s: expected %s, got %s" %
-                            (field, c[y], val))
+                        assert float(c[y]) == pytest.approx(float(val)), f"mismatch in {field}"
                 else:
                     if c[y] == ".":
                         ref_val = self.missing_value
                     else:
                         ref_val = c[y]
-                    self.assertEqual(
-                        ref_val, val,
-                        "mismatch in field %s: expected %s(%s), got %s(%s)" %
-                        (field, ref_val, type(ref_val), val, type(val)))
+                    assert val == ref_val, f"mismatch in {field}"
             # parse samples
             if check_samples:
                 if len(c) == 8:
                     for x, s in enumerate(r.samples):
-                        self.assertEqual(
-                            [], r.samples[s].values(),
-                            "mismatch in sample {}: "
-                            "expected [], got {}, src={}, line={}".format(
-                                s, r.samples[s].values(),
-                                r.samples[s].items(), r))
+                        assert r.samples[s].values() == [], f"mismatch in sample {s}"
                 else:
                     for x, s in enumerate(r.samples):
                         ref, comp = self.sample2value(
@@ -888,21 +818,9 @@ class TestVCFFromVCF(TestVCF):
                     is_float = False
 
                 if is_float:
-                    self.assertAlmostEqual(
-                        a, b, 2,
-                        "mismatch in sample {}: "
-                        "expected {}, got {}, src={}, line={}"
-                        .format(
-                            s, ref, comp,
-                            r.samples[s].items(), r))
+                    assert a == pytest.approx(b), "mismatch in sample {s}: expected {ref}, got {comp}"
                 else:
-                    self.assertEqual(
-                        a, b,
-                        "mismatch in sample {}: "
-                        "expected {}, got {}, src={}, line={}"
-                        .format(
-                            s, ref, comp,
-                            r.samples[s].items(), r))
+                    assert a == b, "mismatch in sample {s}: expected {ref}, got {comp}"
 
 
 ############################################################################
@@ -913,9 +831,9 @@ class TestVCFFromVCF(TestVCF):
 vcf_files = glob.glob(os.path.join(TABIX_DATADIR, "vcf", "*.vcf"))
 
 for vcf_file in vcf_files:
-    n = "VCFFromTabixTest_%s" % os.path.basename(vcf_file[:-4])
+    n = "TestVCFFromTabix_%s" % os.path.basename(vcf_file[:-4])
     globals()[n] = type(n, (TestVCFFromTabix,), dict(filename=vcf_file,))
-    n = "VCFFromVCFTest_%s" % os.path.basename(vcf_file[:-4])
+    n = "TestVCFFromVCF_%s" % os.path.basename(vcf_file[:-4])
     globals()[n] = type(n, (TestVCFFromVCF,), dict(filename=vcf_file,))
 
 
@@ -985,15 +903,15 @@ class TestVCFFromVariantFile(TestVCFFromVCF):
 
         return r, comp
 
-    def setUp(self):
-        TestVCF.setUp(self)
+    def setup_method(self):
+        TestVCF.setup_method(self)
         self.compare = load_and_convert(self.filename, encode=False)
 
-    def tearDown(self):
+    def teardown_method(self):
         if self.vcf:
             self.vcf.close()
         self.vcf = None
-        TestVCF.tearDown(self)
+        TestVCF.teardown_method(self)
 
     def get_iterator(self):
         self.vcf = pysam.VariantFile(self.filename)
@@ -1013,13 +931,13 @@ for vcf_file in vcf_files:
     globals()[n] = type(n, (TestVCFFromVariantFile,), dict(filename=vcf_file,))
 
 
-class TestRemoteFileHTTP(unittest.TestCase):
+class TestRemoteFileHTTP:
 
     url = "http://genserv.anat.ox.ac.uk/downloads/pysam/test/example.gtf.gz"
     region = "chr1:1-1000"
     local = os.path.join(TABIX_DATADIR, "example.gtf.gz")
 
-    def setUp(self):
+    def setup_method(self):
         if not getattr(pysam.config, "HAVE_LIBCURL", 0) or not check_url(self.url):
             self.remote_file = None
         else:
@@ -1027,7 +945,7 @@ class TestRemoteFileHTTP(unittest.TestCase):
 
         self.local_file = pysam.TabixFile(self.local, "r")
 
-    def tearDown(self):
+    def teardown_method(self):
         if self.remote_file is None:
             return
 
@@ -1041,15 +959,15 @@ class TestRemoteFileHTTP(unittest.TestCase):
         remote_result = list(self.remote_file.fetch())
         local_result = list(self.local_file.fetch())
 
-        self.assertEqual(len(remote_result), len(local_result))
+        assert len(remote_result) == len(local_result)
         for x, y in zip(remote_result, local_result):
-            self.assertEqual(x, y)
+            assert x == y
 
     def testHeader(self):
         if self.remote_file is None:
             return
 
-        self.assertEqual(list(self.local_file.header), [])
+        assert list(self.local_file.header) == []
 
 
 class TestRemoteFileHTTPWithHeader(TestRemoteFileHTTP):
@@ -1058,7 +976,7 @@ class TestRemoteFileHTTPWithHeader(TestRemoteFileHTTP):
     region = "chr1:1-1000"
     local = os.path.join(TABIX_DATADIR, "example_comments.gtf.gz")
 
-    def setUp(self):
+    def setup_method(self):
         if not getattr(pysam.config, "HAVE_LIBCURL", 0) or not check_url(self.url):
             self.remote_file = None
         else:
@@ -1069,11 +987,11 @@ class TestRemoteFileHTTPWithHeader(TestRemoteFileHTTP):
         if self.remote_file is None:
             return
 
-        self.assertEqual(list(self.local_file.header), ["# comment at start"])
-        self.assertEqual(list(self.local_file.header), self.remote_file.header)
+        assert list(self.local_file.header) == ["# comment at start"]
+        assert list(self.local_file.header) == self.remote_file.header
 
 
-class TestIndexArgument(unittest.TestCase):
+class TestIndexArgument:
 
     filename_src = os.path.join(TABIX_DATADIR, "example.vcf.gz")
     filename_dst = "tmp_example.vcf.gz"
@@ -1094,9 +1012,9 @@ class TestIndexArgument(unittest.TestCase):
                 self.filename_dst, "r", index=self.index_dst) as diff_index_file:
             diff_index_result = list(diff_index_file.fetch())
 
-        self.assertEqual(len(same_basename_results), len(diff_index_result))
+        assert len(same_basename_results) == len(diff_index_result)
         for x, y in zip(same_basename_results, diff_index_result):
-            self.assertEqual(x, y)
+            assert x == y
 
         os.unlink(self.filename_dst)
         os.unlink(self.index_dst)
@@ -1113,9 +1031,9 @@ class TestIndexArgument(unittest.TestCase):
             self.filename_dst, "r", index=self.index_dst_dat) as diff_index_file:
             diff_index_result = list(diff_index_file.fetch())
 
-        self.assertEqual(len(same_basename_results), len(diff_index_result))
+        assert len(same_basename_results) == len(diff_index_result)
         for x, y in zip(same_basename_results, diff_index_result):
-            self.assertEqual(x, y)
+            assert x == y
 
         os.unlink(self.filename_dst)
         os.unlink(self.index_dst_dat)
@@ -1131,7 +1049,7 @@ def _TestMultipleIteratorsHelper(filename, multiple_iterators):
     return iterator
 
 
-class TestBackwardsCompatibility(unittest.TestCase):
+class TestBackwardsCompatibility:
     """check if error is raised if a tabix file from an
     old version is accessed from pysam"""
 
@@ -1139,9 +1057,9 @@ class TestBackwardsCompatibility(unittest.TestCase):
         with pysam.TabixFile(filename) as tf:
             ref = load_and_convert(filename)
             if raises is None:
-                self.assertEqual(len(list(tf.fetch())), len(ref))
+                assert len(list(tf.fetch())) == len(ref)
             else:
-                self.assertRaises(raises, tf.fetch)
+                with pytest.raises(raises): tf.fetch()
 
     def testVCF0v23(self):
         self.check(os.path.join(TABIX_DATADIR, "example_0v23.vcf.gz"),
@@ -1169,7 +1087,7 @@ class TestBackwardsCompatibility(unittest.TestCase):
         self.check(os.path.join(TABIX_DATADIR, "empty.bed.gz"))
 
 
-class TestMultipleIterators(unittest.TestCase):
+class TestMultipleIterators:
 
     filename = os.path.join(TABIX_DATADIR, "example.gtf.gz")
 
@@ -1180,10 +1098,9 @@ class TestMultipleIterators(unittest.TestCase):
             a = next(tabix.fetch(parser=pysam.asGTF()))
             b = next(tabix.fetch(parser=pysam.asGTF()))
             # the first two lines differ only by the feature field
-            self.assertEqual(a.feature, "UTR")
-            self.assertEqual(b.feature, "exon")
-            self.assertEqual(re.sub("UTR", "", str(a)),
-                             re.sub("exon", "", str(b)))
+            assert a.feature == "UTR"
+            assert b.feature == "exon"
+            assert re.sub("UTR", "", str(a)) == re.sub("exon", "", str(b))
 
     def testDisjointIterators(self):
         # two iterators working on the same file
@@ -1191,38 +1108,35 @@ class TestMultipleIterators(unittest.TestCase):
             a = next(tabix.fetch(parser=pysam.asGTF(), multiple_iterators=True))
             b = next(tabix.fetch(parser=pysam.asGTF(), multiple_iterators=True))
             # both iterators are at top of file
-            self.assertEqual(str(a), str(b))
+            assert str(a) == str(b)
 
     def testScope(self):
         # technically it does not really test if the scope is correct
         i = _TestMultipleIteratorsHelper(self.filename,
                                          multiple_iterators=True)
-        self.assertTrue(next(i))
+        assert next(i)
         i = _TestMultipleIteratorsHelper(self.filename,
                                          multiple_iterators=False)
-        self.assertRaises(IOError, i.__next__)
+        with pytest.raises(IOError): next(i)
 
     def testDoubleFetch(self):
-
         with pysam.TabixFile(self.filename) as f:
-
             for a, b in zip(f.fetch(multiple_iterators=True),
                             f.fetch(multiple_iterators=True)):
-                self.assertEqual(str(a), str(b))
+                assert str(a) == str(b)
 
 
-class TestContextManager(unittest.TestCase):
+class TestContextManager:
 
     filename = os.path.join(TABIX_DATADIR, "example.gtf.gz")
 
     def testManager(self):
-
         with pysam.TabixFile(self.filename) as tabixfile:
             tabixfile.fetch()
-        self.assertEqual(tabixfile.closed, True)
+        assert tabixfile.closed
 
 
-class TestMultithreadTabixFile(unittest.TestCase):
+class TestMultithreadTabixFile:
 
     filename = os.path.join(TABIX_DATADIR, "example.gtf.gz")
 
@@ -1233,7 +1147,3 @@ class TestMultithreadTabixFile(unittest.TestCase):
             multi = [r for r in tabixfile.fetch()]
         for r1, r2 in zip(single, multi):
             assert str(r1) == str(r2)
-
-
-if __name__ == "__main__":
-    unittest.main()

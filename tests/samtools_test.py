@@ -1,18 +1,12 @@
-#!/usr/bin/env python
-'''unit testing code for pysam.
-
-Execute in the :file:`tests` directory as it requires the Makefile
-and data files located there.
-'''
-
 import warnings
-import unittest
 import os
 import re
 import glob
+import pytest
 import sys
 import subprocess
 import shutil
+
 import pysam
 import pysam.samtools
 import pysam.bcftools
@@ -50,7 +44,7 @@ def get_version(executable):
     return x
 
 
-class SamtoolsTest(unittest.TestCase):
+class TestSamtools:
 
     '''test samtools command line commands and compare
     against pysam commands.
@@ -138,7 +132,7 @@ class SamtoolsTest(unittest.TestCase):
                  pysam.__samtools_version__,
                  samtools_version))
 
-    def setUp(self):
+    def setup_method(self):
         '''setup tests.
 
         For setup, all commands will be run before the first test is
@@ -211,7 +205,7 @@ class SamtoolsTest(unittest.TestCase):
                 samtools_files = glob.glob(os.path.join(
                     samtools_target, "*"))
                 pysam_files = glob.glob(os.path.join(pysam_target, "*"))
-                self.assertEqual(len(samtools_files), len(pysam_files))
+                assert len(samtools_files) == len(pysam_files)
                 # need to be able to exclude files like README, etc.
                 continue
             else:
@@ -220,15 +214,11 @@ class SamtoolsTest(unittest.TestCase):
 
             for s, p in zip(samtools_files, pysam_files):
                 binary_equal = checkBinaryEqual(s, p)
-                error_msg = "%s failed: files %s and %s are not the same" % (
-                    command, s, p)
+                error_msg = f"{command} failed: files {s} and {p} are not the same"
                 if binary_equal:
                     continue
                 elif s.endswith(".bam"):
-                    self.assertTrue(
-                        check_samtools_view_equal(
-                            s, p, without_header=True),
-                        error_msg)
+                    assert check_samtools_view_equal(s, p, without_header=True), error_msg
                 else:
                     lines_s = slurp_file(s, omit=lambda x: x.startswith("#"))
                     lines_p = slurp_file(p, omit=lambda x: x.startswith("#"))
@@ -245,7 +235,7 @@ class SamtoolsTest(unittest.TestCase):
 
             self.check_statement(statement)
 
-    @unittest.skipUnless(sys.stdin.isatty(), "skipping usage tests, stdin is not a tty")
+    @pytest.mark.skipif(not sys.stdin.isatty(), reason="skipping usage tests, stdin is not a tty")
     def testUsage(self):
         if self.executable == "bcftools":
             # bcftools usage messages end with exit(1)
@@ -263,71 +253,63 @@ class SamtoolsTest(unittest.TestCase):
             pysam_method = getattr(self.module, mapped_command)
             usage_msg = pysam_method.usage()
             expected = r"Usage:\s+{} {}".format(self.executable, command)
-            self.assertTrue(re.search(expected, usage_msg) is not None)
+            assert re.search(expected, usage_msg) is not None
 
-    def tearDown(self):
+    def teardown_method(self):
         if os.path.exists(self.workdir):
             shutil.rmtree(self.workdir)
         os.chdir(self.savedir)
 
 
-class EmptyIndexTest(unittest.TestCase):
-
+class TestEmptyIndex:
     def testEmptyIndex(self):
-        self.assertRaises(IOError, pysam.samtools.index,
-                          "exdoesntexist.bam")
+        with pytest.raises(IOError):
+            pysam.samtools.index("exdoesntexist.bam")
 
     def testEmptyIndexWithExtraFlag(self):
-        self.assertRaises(IOError, pysam.samtools.index,
-                          "-c",
-                          "exdoesntexist.bam")
+        with pytest.raises(IOError):
+            pysam.samtools.index("-c", "exdoesntexist.bam")
 
     def testEmptyIndexWithExtraArg(self):
-        self.assertRaises(IOError, pysam.samtools.index,
-                          "-c",
-                          "-m",
-                          "14",
-                          "exdoesntexist.bam")
+        with pytest.raises(IOError):
+            pysam.samtools.index("-c", "-m", "14", "exdoesntexist.bam")
 
 
-class ExerciseSubcommands(unittest.TestCase):
+class TestSubcommands:
     def testFailingSamtools(self):
-        with self.assertRaises(pysam.SamtoolsError):
+        with pytest.raises(pysam.SamtoolsError):
             pysam.samtools.view("nonexistent.bam")
 
     def testFailingBCFtools(self):
-        with self.assertRaises(pysam.SamtoolsError):
+        with pytest.raises(pysam.SamtoolsError):
             pysam.bcftools.view("nonexistent.vcf")
 
 
-class TestReturnType(unittest.TestCase):
-
+class TestReturnType:
     def testReturnValueString(self):
         retval = pysam.idxstats(os.path.join(BAM_DATADIR, "ex1.bam"))
-        self.assertFalse(isinstance(retval, bytes))
-        self.assertTrue(isinstance(retval, str))
+        assert not isinstance(retval, bytes)
+        assert isinstance(retval, str)
 
     def testReturnValueData(self):
-        args = "-O BAM {}".format(os.path.join(BAM_DATADIR,
-                                               "ex1.bam")).split(" ")
-        retval = pysam.view(*args)
-        self.assertTrue(isinstance(retval, bytes))
-        self.assertFalse(isinstance(retval, str))
+        retval = pysam.view("-O", "BAM", os.path.join(BAM_DATADIR, "ex1.bam"))
+        assert isinstance(retval, bytes)
+        assert not isinstance(retval, str)
 
 
-class StdoutTest(unittest.TestCase):
+class TestStdout:
     '''test if stdout can be redirected.'''
 
     def testWithRedirectedStdout(self):
         r = pysam.samtools.flagstat(
             os.path.join(BAM_DATADIR, "ex1.bam"))
-        self.assertTrue(len(r) > 0)
+        assert len(r) > 0
 
     def testWithoutRedirectedStdout(self):
         r = pysam.samtools.flagstat(
             os.path.join(BAM_DATADIR, "ex1.bam"),
             catch_stdout=False)
-        self.assertEqual(r, None)
+        assert r is None
 
     def testDoubleCalling(self):
         # The following would fail if there is an
@@ -342,13 +324,13 @@ class StdoutTest(unittest.TestCase):
         r = pysam.samtools.flagstat(
             os.path.join(BAM_DATADIR, "ex1.bam"),
             save_stdout=outfile)
-        self.assertEqual(r, None)
+        assert r is None
         with open(outfile) as inf:
             r = inf.read()
-        self.assertTrue(len(r) > 0)
+        assert len(r) > 0
 
 
-class PysamTest(SamtoolsTest):
+class TestPysam(TestSamtools):
     """check access to samtools command in the pysam
     main package.
 
@@ -358,7 +340,7 @@ class PysamTest(SamtoolsTest):
     module = pysam
 
 
-# class BcftoolsTest(SamtoolsTest):
+# class TestBcftools(TestSamtools):
 
 #     requisites = [
 #         "ex1.fa",
@@ -401,9 +383,3 @@ class PysamTest(SamtoolsTest):
 #     executable = "bcftools"
 
 #     module = pysam.bcftools
-
-
-if __name__ == "__main__":
-    print("starting tests")
-    unittest.main()
-    print("completed tests")
