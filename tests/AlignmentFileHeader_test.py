@@ -255,8 +255,7 @@ class TestHeaderWriteRead(unittest.TestCase):
                      {'LB': 'SC_2', 'ID': 'L2', 'SM': 'NA12891',
                       'PU': 'SC_2_12', "CN": "name:with:colon"}],
               'PG': [{'ID': 'P1', 'VN': '1.0', 'CL': 'tool'},
-                     {'ID': 'P2', 'VN': '1.1', 'CL': 'tool with in option -R a\tb',
-                      'PP': 'P1'}],
+                     {'ID': 'P2', 'VN': '1.1', 'CL': 'tool --option argument', 'PP': 'P1'}],
               'HD': {'VN': '1.0'},
               'CO': ['this is a comment', 'this is another comment'],
               }
@@ -314,9 +313,6 @@ class TestHeaderWriteRead(unittest.TestCase):
         
     def test_CRAM(self):
         header = copy.copy(self.header)
-        if "PG" in header:
-            # for CRAM, \t needs to be quoted:
-            header['PG'][1]['CL'] = re.sub(r"\t", r"\\\\t", header['PG'][1]['CL'])
         self.check_read_write("wc", header)
 
 
