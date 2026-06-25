@@ -1633,36 +1633,6 @@ class TestDoubleFetchCRAMWithReference(TestDoubleFetchBAM):
     reference_filename = os.path.join(BAM_DATADIR, 'ex1.fa')
 
 
-class TestRemoteFileFTP(unittest.TestCase):
-
-    '''test remote access.
-
-    '''
-
-    # Need to find an ftp server without password on standard
-    # port.
-
-    url = "ftp://ftp.sanger.ac.uk/pub/rd/humanSequences/CV.bam"
-    region = "1:1-1000"
-
-    def testFTPView(self):
-        return
-        if not check_url(self.url):
-            return
-
-        result = pysam.samtools.view(self.url, self.region)
-        self.assertEqual(len(result), 36)
-
-    def testFTPFetch(self):
-        return
-        if not check_url(self.url):
-            return
-
-        samfile = pysam.AlignmentFile(self.url, "rb")
-        result = list(samfile.fetch(region=self.region))
-        self.assertEqual(len(result), 36)
-
-
 class TestRemoteFileHTTP(unittest.TestCase):
 
     url = "http://genserv.anat.ox.ac.uk/downloads/pysam/test/ex1.bam"
