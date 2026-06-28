@@ -2,6 +2,8 @@ name: CI
 
 on: [push, pull_request]
 
+permissions: {}
+
 jobs:
   direct:
     runs-on: ${{ matrix.os }}-latest
@@ -16,7 +18,9 @@ jobs:
 
     steps:
       - name: Checkout pysam
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
@@ -99,7 +103,9 @@ jobs:
 
     steps:
       - name: Checkout pysam
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Build and test on ${{ matrix.os }}
         uses: cross-platform-actions/action@v1
@@ -127,7 +133,9 @@ jobs:
 
     steps:
       - name: Checkout pysam
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
@@ -188,10 +196,12 @@ jobs:
 
     steps:
       - name: Checkout pysam
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up Conda and Python ${{ matrix.python-version }}
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           channels: conda-forge,bioconda
           channel-priority: strict

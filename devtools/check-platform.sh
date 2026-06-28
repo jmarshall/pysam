@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-expected=$1
+expected=$EXPECTED_ARCH
 
 arch=$(uname -m)
 case $arch in

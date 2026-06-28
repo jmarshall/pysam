@@ -7,6 +7,8 @@ on:
     tags:
       - v[0-9]+.*
 
+permissions: {}
+
 jobs:
   build_wheels:
     runs-on: ${{ case(matrix.kind == 'macos',
@@ -29,10 +31,14 @@ jobs:
 
     steps:
       - name: Checkout pysam
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Check platform is the expected ${{ matrix.arch }} architecture
-        run:  devtools/check-platform.sh ${{ matrix.arch }}
+        run:  devtools/check-platform.sh
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.4.1
@@ -70,7 +76,9 @@ jobs:
 
     steps:
       - name: Checkout pysam
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up Python ${{ env.job_python_version }}
         uses: actions/setup-python@v6
@@ -100,7 +108,7 @@ jobs:
     environment: ${{ case(github.ref_type == 'tag', 'pypi', 'testpypi') }}
 
     permissions:
-      id-token: write
+      id-token: write  # Needed to upload to PyPI
 
     steps:
       - name: Get artifacts
