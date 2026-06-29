@@ -10,7 +10,7 @@ import array
 from pysam import CDEL, CDIFF, CEQUAL, CINS, CMATCH, CPAD, CREF_SKIP, CSOFT_CLIP
 
 from TestUtils import (
-    checkFieldEqual,
+    dict_of_read,
     make_data_files,
     BAM_DATADIR,
     get_temp_filename,
@@ -148,32 +148,32 @@ class TestAlignedSegment(ReadTest):
         b = self.build_read()
 
         # check qname
+        exclude = {"query_name"}
         b.query_name = "read_123"
-        checkFieldEqual(self, a, b, "query_name")
+        assert dict_of_read(a, exclude) == dict_of_read(b, exclude)
         b.query_name = "read_12345678"
-        checkFieldEqual(self, a, b, "query_name")
+        assert dict_of_read(a, exclude) == dict_of_read(b, exclude)
         b.query_name = "read_12345"
-        checkFieldEqual(self, a, b)
+        assert dict_of_read(a) == dict_of_read(b)
 
         # check cigar
+        exclude = {"cigartuples"}
         b.cigartuples = ((0, 10),)
-        checkFieldEqual(self, a, b, "cigartuples")
+        assert dict_of_read(a, exclude) == dict_of_read(b, exclude)
         b.cigartuples = ((0, 10), (2, 1), (0, 10))
-        checkFieldEqual(self, a, b, "cigartuples")
+        assert dict_of_read(a, exclude) == dict_of_read(b, exclude)
         b.cigartuples = ((0, 10), (2, 1), (0, 9), (1, 1), (0, 20))
-        checkFieldEqual(self, a, b)
+        assert dict_of_read(a) == dict_of_read(b)
 
         # check seq
+        exclude = {"query_sequence", "query_qualities", "query_length"}
         b.query_sequence = "ATGC"
-        checkFieldEqual(
-            self, a, b, ("query_sequence", "query_qualities", "query_length")
-        )
+        assert dict_of_read(a, exclude) == dict_of_read(b, exclude)
         b.query_sequence = "ATGC" * 3
-        checkFieldEqual(
-            self, a, b, ("query_sequence", "query_qualities", "query_length")
-        )
+        assert dict_of_read(a, exclude) == dict_of_read(b, exclude)
         b.query_sequence = "ATGC" * 10
-        checkFieldEqual(self, a, b, ("query_qualities",))
+        exclude = {"query_qualities"}
+        assert dict_of_read(a, exclude) == dict_of_read(b, exclude)
 
         # reset qual
         b = self.build_read()
@@ -202,10 +202,11 @@ class TestAlignedSegment(ReadTest):
         ):
             setattr(b, x, True)
             self.assertEqual(getattr(b, x), True)
-            checkFieldEqual(self, a, b, ("flag", x, dual(x),))
+            exclude = {"flag", x, dual(x)}
+            assert dict_of_read(a, exclude) == dict_of_read(b, exclude)
             setattr(b, x, False)
             self.assertEqual(getattr(b, x), False)
-            checkFieldEqual(self, a, b)
+            assert dict_of_read(a) == dict_of_read(b)
 
         for x in (
             "is_mapped",
@@ -215,10 +216,11 @@ class TestAlignedSegment(ReadTest):
         ):
             setattr(b, x, False)
             self.assertEqual(getattr(b, x), False)
-            checkFieldEqual(self, a, b, ("flag", x, dual(x),))
+            exclude = {"flag", x, dual(x)}
+            assert dict_of_read(a, exclude) == dict_of_read(b, exclude)
             setattr(b, x, True)
             self.assertEqual(getattr(b, x), True)
-            checkFieldEqual(self, a, b)
+            assert dict_of_read(a) == dict_of_read(b)
 
     def testUpdate2(self):
         """issue 135: inplace update of sequence and quality score.

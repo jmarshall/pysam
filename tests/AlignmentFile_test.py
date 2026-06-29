@@ -20,7 +20,7 @@ from functools import partial
 import pysam
 import pysam.samtools
 from TestUtils import checkBinaryEqual, checkGZBinaryEqual, check_url, \
-    check_samtools_view_equal, checkFieldEqual, force_str, \
+    check_samtools_view_equal, dict_of_read, force_str, \
     get_temp_filename, make_data_files, BAM_DATADIR
 
 
@@ -1349,7 +1349,7 @@ class TestDeNovoConstruction(unittest.TestCase):
 
         references = list(infile)
         for denovo, reference in zip(references, self.reads):
-            checkFieldEqual(self, reference, denovo)
+            assert dict_of_read(reference) == dict_of_read(denovo)
             self.assertEqual(reference.compare(denovo), 0)
 
     # TODO
@@ -1359,7 +1359,7 @@ class TestDeNovoConstruction(unittest.TestCase):
 
     #     others = list(infile)
     #     for denovo, other in zip(others, self.reads):
-    #         checkFieldEqual(self, other, denovo)
+    #         assert dict_of_read(other) == dict_of_read(denovo)
     #         self.assertEqual(other.compare(denovo), 0)
 
     def testBAMWholeFile(self):

@@ -145,8 +145,9 @@ def check_url(url):
         return False
 
 
-def checkFieldEqual(cls, read1, read2, exclude=[]):
-    '''check if two reads are equal by comparing each field.'''
+def dict_of_read(read, exclude=frozenset()):
+    '''return a read in dictionary form, omitting excluded fields.'''
+    d = {}
 
     # add the . for refactoring purposes.
     for x in (".query_name",
@@ -171,11 +172,10 @@ def checkFieldEqual(cls, read1, read2, exclude=[]):
               ".is_secondary", ".is_qcfail",
               ".is_duplicate"):
         n = x[1:]
-        if n in exclude:
-            continue
-        cls.assertEqual(getattr(read1, n), getattr(read2, n),
-                        "attribute mismatch for %s: %s != %s" %
-                        (n, getattr(read1, n), getattr(read2, n)))
+        if n not in exclude:
+            d[n] = getattr(read, n)
+
+    return d
 
 
 def check_lines_equal(cls, a, b, sort=False, filter_f=None, msg=None):
