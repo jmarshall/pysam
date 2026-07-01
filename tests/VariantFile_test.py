@@ -8,7 +8,7 @@ import shutil
 import gzip
 from pathlib import Path
 
-from TestUtils import get_temp_filename, check_lines_equal, load_and_convert, make_data_files, CBCF_DATADIR, get_temp_context
+from TestUtils import get_temp_filename, load_and_convert, make_data_files, slurp_file, CBCF_DATADIR, get_temp_context
 
 
 def setUpModule():
@@ -494,10 +494,9 @@ class TestConstructionVCFWithContigs(unittest.TestCase):
             self.assertEqual(inf.is_write, False)
 
     def complete_check(self, fn_in, fn_out):
-        self.maxDiff = None
-        check_lines_equal(
-            self, fn_in, fn_out, sort=True,
-            filter_f=lambda x: x.startswith("##contig"))
+        lines_in = slurp_file(fn_in, omit=lambda x: x.startswith("##contig"))
+        lines_out = slurp_file(fn_out, omit=lambda x: x.startswith("##contig"))
+        assert sorted(lines_in) == sorted(lines_out)
         os.unlink(fn_out)
 
     def testConstructionWithRecords(self):

@@ -16,7 +16,7 @@ import shutil
 import pysam
 import pysam.samtools
 import pysam.bcftools
-from TestUtils import checkBinaryEqual, check_lines_equal, \
+from TestUtils import checkBinaryEqual, slurp_file, \
     check_samtools_view_equal, get_temp_filename, force_bytes, WORKDIR, \
     make_data_files, BAM_DATADIR
 
@@ -230,10 +230,9 @@ class SamtoolsTest(unittest.TestCase):
                             s, p, without_header=True),
                         error_msg)
                 else:
-                    check_lines_equal(
-                        self, s, p,
-                        filter_f=lambda x: x.startswith("#"),
-                        msg=error_msg)
+                    lines_s = slurp_file(s, omit=lambda x: x.startswith("#"))
+                    lines_p = slurp_file(p, omit=lambda x: x.startswith("#"))
+                    assert lines_s == lines_p, error_msg
 
     def testStatements(self):
         for statement in self.statements:

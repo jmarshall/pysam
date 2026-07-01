@@ -55,6 +55,14 @@ def openfile(fn):
         return open(fn)
 
 
+def slurp_file(filename, omit_startswith=None, omit=None):
+    with openfile(filename) as f:
+        if omit is not None:
+            return [line for line in f if not omit(line)]
+        else:
+            return f.readlines()
+
+
 def checkBinaryEqual(filename1, filename2):
     '''return true if the two files are binary equal.
     '''
@@ -176,29 +184,6 @@ def dict_of_read(read, exclude=frozenset()):
             d[n] = getattr(read, n)
 
     return d
-
-
-def check_lines_equal(cls, a, b, sort=False, filter_f=None, msg=None):
-    """check if contents of two files are equal comparing line-wise.
-
-    sort: bool
-       sort contents of both files before comparing.
-    filter_f:
-       remover lines in both a and b where expression is True
-    """
-    with openfile(a) as inf:
-        aa = inf.readlines()
-    with openfile(b) as inf:
-        bb = inf.readlines()
-
-    if filter_f is not None:
-        aa = [x for x in aa if not filter_f(x)]
-        bb = [x for x in bb if not filter_f(x)]
-
-    if sort:
-        cls.assertEqual(sorted(aa), sorted(bb), msg)
-    else:
-        cls.assertEqual(aa, bb, msg)
 
 
 def get_temp_filename(suffix=""):
