@@ -300,64 +300,63 @@ class ExerciseSubcommands(unittest.TestCase):
             pysam.bcftools.view("nonexistent.vcf")
 
 
-if sys.platform != "darwin":
-    # fails with segfault with htslib 1.5 on Osx, an issue with flockfile
-    # issue seems to be with repeated calls to interface
+class TestReturnType(unittest.TestCase):
 
-    class TestReturnType(unittest.TestCase):
+    def testReturnValueString(self):
+        retval = pysam.idxstats(os.path.join(BAM_DATADIR, "ex1.bam"))
+        self.assertFalse(isinstance(retval, bytes))
+        self.assertTrue(isinstance(retval, str))
 
-        def testReturnValueString(self):
-            retval = pysam.idxstats(os.path.join(BAM_DATADIR, "ex1.bam"))
-            self.assertFalse(isinstance(retval, bytes))
-            self.assertTrue(isinstance(retval, str))
+    def testReturnValueData(self):
+        args = "-O BAM {}".format(os.path.join(BAM_DATADIR,
+                                               "ex1.bam")).split(" ")
+        retval = pysam.view(*args)
+        self.assertTrue(isinstance(retval, bytes))
+        self.assertFalse(isinstance(retval, str))
 
-        def testReturnValueData(self):
-            args = "-O BAM {}".format(os.path.join(BAM_DATADIR,
-                                                   "ex1.bam")).split(" ")
-            retval = pysam.view(*args)
-            self.assertTrue(isinstance(retval, bytes))
-            self.assertFalse(isinstance(retval, str))
 
-    class StdoutTest(unittest.TestCase):
-        '''test if stdout can be redirected.'''
+class StdoutTest(unittest.TestCase):
+    '''test if stdout can be redirected.'''
 
-        def testWithRedirectedStdout(self):
-            r = pysam.samtools.flagstat(
-                os.path.join(BAM_DATADIR, "ex1.bam"))
-            self.assertTrue(len(r) > 0)
+    def testWithRedirectedStdout(self):
+        r = pysam.samtools.flagstat(
+            os.path.join(BAM_DATADIR, "ex1.bam"))
+        self.assertTrue(len(r) > 0)
 
-        def testWithoutRedirectedStdout(self):
-            r = pysam.samtools.flagstat(
-                os.path.join(BAM_DATADIR, "ex1.bam"),
-                catch_stdout=False)
-            self.assertEqual(r, None)
+    def testWithoutRedirectedStdout(self):
+        r = pysam.samtools.flagstat(
+            os.path.join(BAM_DATADIR, "ex1.bam"),
+            catch_stdout=False)
+        self.assertEqual(r, None)
 
-        def testDoubleCalling(self):
-            # The following would fail if there is an
-            # issue with stdout being improperly caught.
-            retvals = pysam.idxstats(
-                os.path.join(BAM_DATADIR, "ex1.bam"))
-            retvals = pysam.idxstats(
-                os.path.join(BAM_DATADIR, "ex1.bam"))
+    def testDoubleCalling(self):
+        # The following would fail if there is an
+        # issue with stdout being improperly caught.
+        retvals = pysam.idxstats(
+            os.path.join(BAM_DATADIR, "ex1.bam"))
+        retvals = pysam.idxstats(
+            os.path.join(BAM_DATADIR, "ex1.bam"))
 
-        def testSaveStdout(self):
-            outfile = get_temp_filename(suffix=".tsv")
-            r = pysam.samtools.flagstat(
-                os.path.join(BAM_DATADIR, "ex1.bam"),
-                save_stdout=outfile)
-            self.assertEqual(r, None)
-            with open(outfile) as inf:
-                r = inf.read()
-            self.assertTrue(len(r) > 0)
+    def testSaveStdout(self):
+        outfile = get_temp_filename(suffix=".tsv")
+        r = pysam.samtools.flagstat(
+            os.path.join(BAM_DATADIR, "ex1.bam"),
+            save_stdout=outfile)
+        self.assertEqual(r, None)
+        with open(outfile) as inf:
+            r = inf.read()
+        self.assertTrue(len(r) > 0)
 
-    class PysamTest(SamtoolsTest):
-        """check access to samtools command in the pysam
-        main package.
 
-        This is for backwards capability.
-        """
+class PysamTest(SamtoolsTest):
+    """check access to samtools command in the pysam
+    main package.
 
-        module = pysam
+    This is for backwards capability.
+    """
+
+    module = pysam
+
 
 # class BcftoolsTest(SamtoolsTest):
 
