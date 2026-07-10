@@ -1023,12 +1023,10 @@ class TestIndexArgument:
         shutil.copyfile(self.filename_src, self.filename_dst)
         shutil.copyfile(self.index_src, self.index_dst_dat)
 
-        with pysam.TabixFile(
-                self.filename_src, "r", index=self.index_src) as same_basename_file:
+        with pysam.TabixFile(self.filename_src, "r", index=self.index_src) as same_basename_file:
             same_basename_results = list(same_basename_file.fetch())
 
-        with pysam.TabixFile(
-            self.filename_dst, "r", index=self.index_dst_dat) as diff_index_file:
+        with pysam.TabixFile(self.filename_dst, "r", index=self.index_dst_dat) as diff_index_file:
             diff_index_result = list(diff_index_file.fetch())
 
         assert len(same_basename_results) == len(diff_index_result)

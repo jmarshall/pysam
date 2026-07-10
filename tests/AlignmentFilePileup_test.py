@@ -316,7 +316,7 @@ class TestPileUpColumns:
 
     fn = os.path.join(BAM_DATADIR, "ex2.bam")
     fn_fasta = os.path.join(BAM_DATADIR, "ex1.fa")
-    
+
     def test_pileup_depths_are_equal(self):
         samtools_result = PileupTestUtils.build_depth_with_samtoolspipe(self.fn)
         pysam_result = PileupTestUtils.build_depth_with_filter_with_pysam(self.fn)
@@ -332,7 +332,7 @@ class TestPileUpColumns:
         with pysam.FastaFile(self.fn_fasta) as fasta:
             pysam_result = PileupTestUtils.build_query_bases_with_pysam(self.fn, fastafile=fasta, stepper="samtools")
         assert ["".join(x) for x in pysam_result] == samtools_result
-        
+
     def test_pileup_query_qualities_are_equal(self):
         samtools_result = PileupTestUtils.build_query_qualities_with_samtoolspipe(self.fn)
         pysam_result = PileupTestUtils.build_query_qualities_with_pysam(self.fn)

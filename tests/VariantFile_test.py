@@ -81,7 +81,7 @@ class TestMissingSamples:
         """see issue #593"""
         fn = os.path.join(CBCF_DATADIR, filename)
         assert os.path.exists(fn)
-        expect_fail = not "fixed" in self.filename
+        expect_fail = "fixed" not in self.filename
         with pysam.VariantFile(fn) as inf:
             rec = next(inf.fetch())
             if expect_fail:
@@ -99,12 +99,11 @@ class TestMissingSamples:
 class TestMissingSamplesFixed(TestMissingSamples):
     # workaround for NUMBER=G in INFO records:
     # perl 's/Number=G/Number=./ if (/INFO/)'
-    
+
     filename = "gnomad_fixed.vcf"
 
 
 class TestOpening:
-
     def testMissingFile(self):
         with pytest.raises(IOError):
             pysam.VariantFile("missing_file.vcf")
@@ -199,7 +198,7 @@ class TestIndexFormatsVCF:
 
     vcf_filename = os.path.join(CBCF_DATADIR, "example_vcf40.vcf")
     bcf_filename = os.path.join(CBCF_DATADIR, "example_vcf40.bcf")
-    
+
     def test_vcf_with_tbi_index(self):
         with get_temp_context("tmp_fn.vcf") as fn:
             shutil.copyfile(self.vcf_filename, fn)
@@ -207,7 +206,7 @@ class TestIndexFormatsVCF:
             assert os.path.exists(fn + ".gz" + ".tbi")
             assert read_index_header(fn + ".gz.tbi") == b"TBI\1"
             assert not os.path.exists(fn + ".gz" + ".csi")
-            
+
             with pysam.VariantFile(fn + ".gz") as inf:
                 assert len(list(inf.fetch("20"))) == 3
 
@@ -219,7 +218,7 @@ class TestIndexFormatsVCF:
             assert os.path.exists(fn + ".gz" + ".csi")
             assert read_index_header(fn + ".gz.csi") == b"CSI\1"
             assert not os.path.exists(fn + ".gz" + ".tbi")
-            
+
             with pysam.VariantFile(fn + ".gz") as inf:
                 assert len(list(inf.fetch("20"))) == 3
 
@@ -231,7 +230,7 @@ class TestIndexFormatsVCF:
             assert os.path.exists(fn + ".csi")
             assert read_index_header(fn + ".csi") == b"CSI\1"
             assert not os.path.exists(fn + ".tbi")
-            
+
             with pysam.VariantFile(fn) as inf:
                 assert len(list(inf.fetch("20"))) == 3
 
@@ -243,7 +242,7 @@ class TestIndexFormatsVCF:
             assert os.path.exists(fn + ".csi")
             assert read_index_header(fn + ".csi") == b"CSI\1"
             assert not os.path.exists(fn + ".tbi")
-            
+
             with pysam.VariantFile(fn) as inf:
                 assert len(list(inf.fetch("20"))) == 3
 
@@ -252,11 +251,11 @@ class TestIndexFormatsVCF:
             shutil.copyfile(self.bcf_filename, fn)
 
             pysam.tabix_index(fn, preset="vcf", force=True, csi=True)
-            
+
             assert os.path.exists(fn + ".csi")
             assert read_index_header(fn + ".csi") == b"CSI\1"
             assert not os.path.exists(fn + ".tbi")
-            
+
             with pysam.VariantFile(fn) as inf:
                 assert len(list(inf.fetch("20"))) == 3
 
@@ -276,7 +275,6 @@ class TestHeader:
         assert sorted(ref) == sorted(comp)
 
     def testIterator(self):
-
         fn = os.path.join(CBCF_DATADIR, self.filename)
         v = pysam.VariantFile(fn)
 
@@ -508,7 +506,6 @@ class TestConstructionVCFWithContigs:
         self.complete_check(fn_in, fn_out)
 
     def testConstructionFromCopy(self):
-
         fn_in = os.path.join(CBCF_DATADIR, self.filename)
         fn_out = get_temp_filename(suffix=".vcf")
         vcf_in = pysam.VariantFile(fn_in)
@@ -523,7 +520,6 @@ class TestConstructionVCFWithContigs:
         self.complete_check(fn_in, fn_out)
 
     def testConstructionWithLines(self):
-
         fn_in = os.path.join(CBCF_DATADIR, self.filename)
         fn_out = get_temp_filename(suffix=".vcf")
         vcf_in = pysam.VariantFile(fn_in)
@@ -646,9 +642,8 @@ class TestVCFVersions:
         self.files_to_test = (glob.glob(os.path.join(CBCF_DATADIR, "example_v*.vcf.gz")) +
                               glob.glob(os.path.join(CBCF_DATADIR, "example_v*.vcf")) +
                               glob.glob(os.path.join(CBCF_DATADIR, "example_v*.bcf")))
-    
-    def test_all_records_can_be_fetched(self):
 
+    def test_all_records_can_be_fetched(self):
         for fn in self.files_to_test:
             with pysam.VariantFile(fn) as inf:
                 records = list(inf.fetch())

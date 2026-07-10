@@ -46,7 +46,6 @@ class cy_build_ext(build_ext):
         super().run()
 
     def build_extension(self, ext):
-
         if isinstance(ext, CyExtension) and ext._init_func:
             ext._init_func(ext)
 
@@ -76,5 +75,5 @@ class cy_build_ext(build_ext):
                 ext.extra_link_args = []
 
             ext.extra_link_args += ['-Wl,-rpath,$ORIGIN']
-                                    
+
         super().build_extension(ext)

@@ -107,7 +107,7 @@ class TestFastaFilePathIndexCompressed(TestFastaFilePathIndex):
 
     filename = os.path.join(BAM_DATADIR, "ex1.fa.gz")
     data_suffix = ".fa.gz"
-    
+
 
 class TestFastxFileFastq:
 
@@ -230,9 +230,9 @@ class TestRemoteFileFTP:
         try:
             with pysam.Fastafile(self.url) as f:
                 assert len(f.fetch("chr1", 0, 1000)) == 1000
-        except (OSError, IOError):
+        except OSError:
             pass
-        
+
     def test_sequence_lengths_are_available(self):
         if not check_url(self.url):
             return
@@ -243,7 +243,7 @@ class TestRemoteFileFTP:
                 assert "chr1" in f.references
                 assert f.lengths[0] == 248956422
                 assert f.get_reference_length("chr1") == 248956422
-        except (OSError, IOError):
+        except OSError:
             pass
 
 
@@ -316,7 +316,7 @@ class TestFastqRecord:
 
 
 class TestFastqProxy:
-    
+
     def test_fastq_proxy_instantiation_raises_error(self):
         with pytest.raises(ValueError):
             pysam.FastqProxy()

@@ -1,8 +1,7 @@
 from PysamTestModule_link_pre_489 import build_read
 
-        
-class TestModule:
 
+class TestModule:
     def test_pass_if_module_can_be_called(self):
         read = build_read()
         assert read.query_name == "hello"

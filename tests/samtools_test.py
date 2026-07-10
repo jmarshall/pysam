@@ -78,7 +78,7 @@ class TestSamtools:
         "index -@2 ex1.bam %(out)s_ex1.bam.fai",
         "idxstats ex1.bam > %(out)s_ex1.idxstats",
         # TODO: fixmate behaviour changed in 1.21
-        #"fixmate ex1.bam %(out)s_ex1.fixmate.bam",
+        # "fixmate ex1.bam %(out)s_ex1.fixmate.bam",
         "flagstat ex1.bam > %(out)s_ex1.flagstat",
         "calmd ex1.bam ex1.fa > %(out)s_ex1.calmd.bam",
         # use -s option, otherwise the following error in samtools 1.2:
@@ -143,7 +143,7 @@ class TestSamtools:
         self.check_version()
 
         self.workdir = os.path.join(WORKDIR, "samtools_test")
-        
+
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
 

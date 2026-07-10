@@ -1550,10 +1550,8 @@ class TestTags(ReadTest):
             ("XO", 1),
             ("XG", 4),
             ("MD", "37^ACCC29T18"),
-            (
-                "XA",
-                "5,+11707,36M1I48M,2;21,-48119779,46M1I38M,2;hs37d5,-10060835,40M1D45M,3;5,+11508,36M1I48M,3;hs37d5,+6743812,36M1I48M,3;19,-59118894,46M1I38M,3;4,-191044002,6M1I78M,3;",
-            ),
+            ("XA", "5,+11707,36M1I48M,2;21,-48119779,46M1I38M,2;hs37d5,-10060835,40M1D45M,3;5,+11508,36M1I48M,3;"
+                   "hs37d5,+6743812,36M1I48M,3;19,-59118894,46M1I38M,3;4,-191044002,6M1I78M,3;"),
         ]  # noqa
 
         r.tags = tags
@@ -1874,6 +1872,7 @@ def test_array_to_qualstr(qual):
     qual_array = pysam.qualitystring_to_array(qual)
     result = pysam.array_to_qualitystring(qual_array)
     assert result == qual
+
 
 def test_longarray_to_qualstr():
     qual_array = array.array('l', [64, 65, 66, 67, 68])

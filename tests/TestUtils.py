@@ -6,6 +6,8 @@ import inspect
 import subprocess
 import tempfile
 import time
+from itertools import zip_longest
+from urllib.request import urlopen
 
 import pysam
 
@@ -28,15 +30,12 @@ LINKDIR = os.path.abspath(os.path.join(
 TESTS_TEMPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "tmp"))
 
 
-from itertools import zip_longest
-from urllib.request import urlopen
-
-
 def force_str(s):
     try:
         return s.decode('ascii')
     except AttributeError:
         return s
+
 
 def force_bytes(s):
     try:
@@ -149,7 +148,7 @@ def check_url(url):
     try:
         urlopen(url, timeout=1)
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -202,6 +201,7 @@ def get_temp_filename(suffix=""):
     f.close()
     return f.name
 
+
 @contextlib.contextmanager
 def get_temp_context(suffix="", keep=False):
     caller_name = inspect.getouterframes(inspect.currentframe(), 3)[1][3]
@@ -218,7 +218,7 @@ def get_temp_context(suffix="", keep=False):
 
     f.close()
     yield f.name
-    
+
     if not keep:
         # clear up any indices as well
         for f in glob.glob(f.name + "*"):

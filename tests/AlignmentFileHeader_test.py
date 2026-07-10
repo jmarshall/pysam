@@ -39,7 +39,6 @@ class TestHeaderConstruction:
                    "@CO\tthis is a comment\n"
                    "@CO\tthis is another comment\n")
 
-
     header_from_references = odict(
         [('SQ', [odict([('LN', 1575), ('SN', 'chr1')]),
                  odict([('LN', 1584), ('SN', 'chr2')])]),
@@ -57,13 +56,13 @@ class TestHeaderConstruction:
         [('SQ', [odict([('LN', 1575), ('SN', 'chr1')]),
                  odict([('LN', 1584), ('SN', 'chr2')])]),
         ])
-    
+
     def compare_headers(self, test_header, ref_header=None):
         '''compare two headers a and b.'''
         test_header_dict = test_header.as_dict()
         if ref_header is None:
             ref_header = self.header_dict
-            
+
         for ak, av in test_header_dict.items():
             assert ak in self.header_dict
             assert av == ref_header[ak]
@@ -80,17 +79,17 @@ class TestHeaderConstruction:
 
         assert test_header.get_tid("chr?") == -1
         with pytest.raises(ValueError): test_header.get_reference_name(2)
-            
+
     def test_header_constructed_from_dict(self):
         header = pysam.AlignmentHeader.from_dict(self.header_dict)
         self.compare_headers(header)
         self.check_name_mapping(header)
-        
+
     def test_header_constructed_from_text(self):
         header = pysam.AlignmentHeader.from_text(self.header_text)
         self.compare_headers(header)
         self.check_name_mapping(header)
-        
+
     def test_header_constructed_from_header(self):
         header = pysam.AlignmentHeader.from_text(self.header_text)
         self.compare_headers(header.copy())
@@ -236,7 +235,6 @@ class TestHeaderFromRefs:
     #     os.unlink( tmpfile )
 
 
-
 class TestHeaderWriteRead:
     header = {'SQ': [{'LN': 1575, 'SN': 'chr1'},
                      {'LN': 1584, 'SN': 'chr2'}],
@@ -294,7 +292,7 @@ class TestHeaderWriteRead:
 
     def test_BAM(self):
         self.check_read_write("wb", self.header)
-        
+
     def test_CRAM(self):
         header = copy.copy(self.header)
         self.check_read_write("wc", header)
