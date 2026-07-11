@@ -1,6 +1,6 @@
 """Benchmarking module for AlignmentFile functionality"""
+import os
 import pytest
-
 
 from VariantFileFetchTestUtils import *
 
@@ -24,7 +24,7 @@ def genomes_data():
     if not os.path.exists(fn_small):
         os.system("bcftools view {} | head -n 10000 | bgzip > {}".format(fn, fn_small))
         os.system("tabix -f -p vcf {}".format(fn_small))
-        
+
     return fn_small
 
 
@@ -52,6 +52,3 @@ def test_build_filter_from_vcf_with_pysam(benchmark, genomes_data):
     result = benchmark(build_filter_from_vcf_with_pysam, genomes_data)
     # note: inconsistent with bcftools
     assert result == 9114
-    
-
-    

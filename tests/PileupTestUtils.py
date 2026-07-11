@@ -18,7 +18,7 @@ def build_pileup_with_samtoolspipe(fn):
                           stderr=FNULL) as proc:
         return len(proc.stdout.readlines())
 
-    
+
 def build_pileup_with_pysam(*args, **kwargs):
     with pysam.AlignmentFile(*args, **kwargs) as inf:
         return len(list(inf.pileup(stepper="samtools")))
@@ -67,7 +67,7 @@ def build_query_bases_with_samtoolspipe(fn, *args, **kwargs):
 
 def build_query_bases_with_samtoolspysam(fn, *args):
     return [x.split()[4] for x in pysam.samtools.mpileup(fn, *args).splitlines()]
-    
+
 
 def build_query_bases_with_pysam_pileups(*args, **kwargs):
     total_pileup = []

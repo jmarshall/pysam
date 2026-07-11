@@ -16,7 +16,7 @@ through indexing.
 
 This module provides a low-level wrapper around the htslib_ C-API as
 using cython and a high-level, pythonic API for convenient access to
-the data within genomic file formats. 
+the data within genomic file formats.
 
 The current version wraps *htslib-1.23.1*, *samtools-1.23.1*, and *bcftools-1.23.1*.
 
@@ -75,13 +75,13 @@ References
    PMID: `33590861 <https://pubmed.ncbi.nlm.nih.gov/33590861>`_.
 
 .. seealso::
- 
+
    Information about htslib
       http://www.htslib.org
 
    The samtools homepage
       http://samtools.sourceforge.net
-   
+
    The cython C-extensions for python
       https://cython.org/
 

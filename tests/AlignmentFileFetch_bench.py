@@ -1,4 +1,5 @@
 """Benchmarking module for AlignmentFile functionality"""
+import os
 import pytest
 
 
@@ -87,11 +88,9 @@ def test_build_aligned_pairs_matchesonly_with_pysam(benchmark):
     assert len(result) == 3235
 
 
-@pytest.mark.aligned_pairs    
+@pytest.mark.aligned_pairs
 def test_build_aligned_pairs_withseq_with_pysam(benchmark):
     result = benchmark(build_aligned_pairs_with_pysam,
                        os.path.join(BAM_DATADIR, "with_md.bam"),
                        with_seq=True)
     assert len(result) == 3235
-    
-

@@ -31,7 +31,7 @@ try:
     import pyximport
     pyximport.install(build_in_temp=False)
     import _compile_test
-except:
+except Exception:
     NO_PYXIMPORT = True
 
 

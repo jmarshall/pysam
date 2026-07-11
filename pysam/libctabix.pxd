@@ -39,7 +39,7 @@ cdef class TabixFile(HTSFile):
 
     cdef Parser parser
 
-    cdef encoding    
+    cdef encoding
 
 
 cdef class Parser:

@@ -69,7 +69,7 @@ def run_configure(option):
             return False
         else:
             return True
-    except OSError as e:
+    except OSError:
         return False
 
 
@@ -112,7 +112,7 @@ def run_nm_defined_symbols(objfile):
     return symbols
 
 
-def adjust_cflags(command, incdir = "/usr/local/include"):
+def adjust_cflags(command, incdir="/usr/local/include"):
     if not truthy(os.environ.get("PYSAM_FIX_CFLAGS", "1")):
         return command, set()
 
@@ -192,8 +192,8 @@ def build_config_dict(ext):
     # ext.libraries is computed (incorporating $LIBS etc) during configure
     libs = " ".join(optionise('-l', ext.libraries))
 
-    return { 'CC': cc, 'CPPFLAGS': cppflags, 'CFLAGS': cflags,
-             'LDFLAGS': ldflags, 'LIBS': libs }
+    return {'CC': cc, 'CPPFLAGS': cppflags, 'CFLAGS': cflags,
+            'LDFLAGS': ldflags, 'LIBS': libs}
 
 
 def write_configvars_header(filename, ext, prefix):
@@ -516,7 +516,7 @@ htslib_configure_options = None
 if HTSLIB_MODE in ['shared', 'separate']:
     package_list += ['pysam.include.htslib',
                      'pysam.include.htslib.htslib']
-    package_dirs.update({'pysam.include.htslib':'htslib'})
+    package_dirs.update({'pysam.include.htslib': 'htslib'})
 
     htslib_configure_options = configure_library(
         "htslib",
@@ -574,7 +574,7 @@ elif HTSLIB_MODE == 'shared':
                       for x in htslib_make_options["LIBHTS_OBJS"].split(" ")]
     separate_htslib_objects = []
 
-    htslib_library_dirs = ["."] # when using setup.py develop?
+    htslib_library_dirs = ["."]  # when using setup.py develop?
     htslib_include_dirs = ['htslib']
 else:
     raise ValueError(f"unknown HTSLIB value {HTSLIB_MODE!r}")
@@ -663,6 +663,7 @@ libraries_for_pysam_module = external_htslib_libraries + internal_htslib_librari
 
 # The list below uses the union of include_dirs and library_dirs for
 # reasons of simplicity.
+
 
 def prebuild_libchtslib(ext, force):
     if HTSLIB_MODE not in ['shared', 'separate']: return

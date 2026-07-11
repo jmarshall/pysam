@@ -132,13 +132,13 @@ def test_read_python_large_uncompressed(benchmark):
     assert result == 100000
 
 
-def test_fetch_plain(benchmark):
+def test_fetch_large_plain(benchmark):
     result = benchmark(fetch_plain, os.path.join(
         TABIX_DATADIR, FN_LARGE_COMPRESSED))
     assert result == 100000
 
 
-def test_fetch_parsed(benchmark):
+def test_fetch_large_parsed(benchmark):
     result = benchmark(fetch_parsed, os.path.join(
         TABIX_DATADIR, FN_LARGE_COMPRESSED))
     assert result == 100000

@@ -6,7 +6,7 @@ How should I cite pysam
 =======================
 
 Pysam has not been published in print. When referring to pysam, please
-use the github URL: https://github.com/pysam-developers/pysam. 
+use the github URL: https://github.com/pysam-developers/pysam.
 As pysam is a wrapper around htslib and the samtools package, I
 suggest citing [Li.2009]_, [Bonfield.2021]_, and/or [Danecek.2021]_,
 as appropriate.
@@ -17,7 +17,7 @@ Is pysam thread-safe?
 Pysam is a mix of python and C code. Instructions within python are
 generally made thread-safe through python's `global interpreter lock`_
 (:dfn:`GIL`). This ensures that python data structures will always be in a
-consistent state. 
+consistent state.
 
 If an external function outside python is called, the programmer has a
 choice to keep the GIL in place or to release it. Keeping the GIL in
@@ -36,7 +36,7 @@ prevent any access conflicts.
 
 Pysam generally uses the latter option and aims to release the GIL for
 I/O intensive tasks. This is generally fine, but thread-safety of all
-parts have not been fully tested. 
+parts have not been fully tested.
 
 A related issue is when different threads read from the same file
 object - or the same thread uses two iterators over a file. There is
@@ -151,7 +151,7 @@ index, use ``until_eof=True``::
     for r in bf.fetch(until_eof=True):
         print(r)
 
-	
+
 BAM files with a large number of reference sequences are slow
 =============================================================
 
@@ -160,8 +160,8 @@ might be slow::
 
       track = pysam.AlignmentFile(fname, "rb")
       for aln in track.fetch():
-      	  pass
-	  
+          pass
+
 The reason is that track.fetch() will iterate through the BAM file
 for each reference sequence in the order as it is defined in the
 header. This might require a lot of jumping around in the file. To
@@ -169,8 +169,8 @@ avoid this, use::
 
       track = pysam.AlignmentFile(fname, "rb")
       for aln in track.fetch(until_eof=True):
-      	  pass
- 
+          pass
+
 This will iterate through reads as they appear in the file.
 
 Weirdness with spliced reads in samfile.pileup(chr,start,end) given spliced alignments from an RNA-seq bam file
@@ -184,9 +184,9 @@ I can't edit quality scores in place
 ====================================
 
 Editing reads in-place generally works, though there is one
-quirk to be aware of. Assigning to AlignedSegment.query_sequence will invalidate 
+quirk to be aware of. Assigning to AlignedSegment.query_sequence will invalidate
 any quality scores in AlignedSegment.query_qualities. The reason is that samtools
-manages the memory of the sequence and quality scores together 
+manages the memory of the sequence and quality scores together
 and thus requires them to always be of the same length or 0.
 
 Thus, to in-place edit the sequence and quality scores, copies of
@@ -195,7 +195,7 @@ the quality scores need to be taken. Consider trimming for example::
     quals = read.query_qualities
     read.query_sequence = read.query_sequence[5:10]
     read.query_qualities = quals[5:10]
- 
+
 Why is there no SNPCaller class anymore?
 =========================================
 
@@ -203,7 +203,7 @@ SNP calling is highly complex and heavily parameterized. There was a
 danger that the pysam implementations might show different behaviour from the
 samtools implementation, which would have caused a lot of confusion.
 
-The best way to use samtools SNP calling from python is to use the 
+The best way to use samtools SNP calling from python is to use the
 :meth:`pysam.mpileup` command and parse the output directly.
 
 I get an error 'PileupProxy accessed after iterator finished'
@@ -217,7 +217,7 @@ error::
     s = AlignmentFile('ex1.bam')
     for p in s.pileup('chr1', 1000,1010):
         pass
-    
+
     for pp in p.pileups:
         print(pp)
 
@@ -243,7 +243,7 @@ Pysam won't compile
 Compiling pysam can be tricky as there are numerous variables that
 differ between build environments such as OS, version, python version,
 and compiler. It is difficult to build software that builds cleanly
-on all systems and the process might fail. Please see the 
+on all systems and the process might fail. Please see the
 `pysam user group
 <https://groups.google.com/forum/#!forum/pysam-user-group>`_
 for common issues.
@@ -253,7 +253,7 @@ generally the cause of the problem is among the first errors to be
 reported. For example, you will need to have the development version
 of python installed that includes the header files such as
 :file:`Python.h`. If that file is missing, the compiler will report
-this at the very top of its error messages but will follow it 
+this at the very top of its error messages but will follow it
 with any unknown function or variable definition it encounters later
 on.
 

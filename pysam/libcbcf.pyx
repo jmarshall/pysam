@@ -4067,7 +4067,7 @@ cdef class VariantRecordSample(object):
         if any((type(x) == int for x in value)):
             raise ValueError('Use .allele_indices to set integer allele indices')
 
-        # determine and set allele indices:    
+        # determine and set allele indices:
         try:
             self['GT'] = tuple( (self.record.alleles.index(allele) for allele in value) )
         except ValueError:

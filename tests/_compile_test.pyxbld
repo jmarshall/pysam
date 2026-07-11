@@ -5,4 +5,4 @@ def make_ext(modname, pyxfilename):
     return Extension(name = modname,
                      sources = [pyxfilename],
                      include_dirs = pysam.get_include(),
-                     define_macros = pysam.get_defines()) 
+                     define_macros = pysam.get_defines())

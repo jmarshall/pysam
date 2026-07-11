@@ -5,14 +5,13 @@ Developer's guide
 Code organization
 =================
 
-The top level directory is organized in the following 
-directories:
+The top level directory is organized into the following directories:
 
 :file:`pysam`
    Code specific to pysam.
 
 :file:`doc`
-   The documentation. To build the latest documentation, first install 
+   The documentation. To build the latest documentation, first install
    `Sphinx`_ and then type::
 
        make -C doc html

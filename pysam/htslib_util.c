@@ -42,21 +42,21 @@ static inline uint8_t * alloc_data(bam1_t *b, size_t size)
 // Return NULL on error (memory allocation)
 bam1_t * pysam_bam_update(bam1_t * b,
 			  const size_t nbytes_old,
-			  const size_t nbytes_new, 
+			  const size_t nbytes_new,
 			  uint8_t * field_start)
 {
   int d = nbytes_new - nbytes_old;
   int new_size;
   size_t nbytes_before;
   uint8_t * retval = NULL;
-    
+
   // no change
   if (d == 0)
     return b;
 
   // new size of total data
   new_size = d + b->l_data;
-  
+
   // fields before field in data
   nbytes_before = field_start - b->data;
 
@@ -74,7 +74,7 @@ bam1_t * pysam_bam_update(bam1_t * b,
 	return NULL;
       field_start = b->data + nbytes_before;
     }
-  
+
   // move data after field to new location
   memmove(field_start + nbytes_new,
 	  field_start + nbytes_old,
@@ -82,7 +82,7 @@ bam1_t * pysam_bam_update(bam1_t * b,
 
   // adjust l_data
   b->l_data = new_size;
-      
+
   return b;
 }
 
@@ -115,7 +115,7 @@ void bam_aux_appendB(bam1_t *b,
 
   // htslib: obsolete?
   // b->l_aux += 8 + l_data;
-  if (b->m_data < b->l_data) 
+  if (b->m_data < b->l_data)
     {
       b->m_data = b->l_data;
       kroundup32(b->m_data);

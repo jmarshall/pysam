@@ -24,7 +24,7 @@ cdef int isNew(char * p, char * buffer, size_t nbytes):
     """
     if p == NULL:
         return 0
-    
+
     return not (buffer <= p <= buffer + nbytes)
 
 
@@ -34,12 +34,12 @@ cdef class TupleProxy:
     This class represents a table row for fast read-access.
 
     Access to individual fields is via the [] operator.
-    
+
     Only read-only access is implemented.
 
     '''
 
-    def __cinit__(self, encoding="ascii"): 
+    def __cinit__(self, encoding="ascii"):
         self.data = NULL
         self.fields = NULL
         self.nbytes = 0
@@ -140,7 +140,7 @@ cdef class TupleProxy:
         return 1
 
     cpdef int getMaxFields(self):
-        '''return maximum number of fields. Return 
+        '''return maximum number of fields. Return
         0 for unknown length.'''
         return 0
 
@@ -175,7 +175,7 @@ cdef class TupleProxy:
         #################################
         # remove line breaks and feeds and update number of bytes
         x = nbytes - 1
-        while x > 0 and (buffer[x] == b'\n' or buffer[x] == b'\r'): 
+        while x > 0 and (buffer[x] == b'\n' or buffer[x] == b'\r'):
             buffer[x] = b'\0'
             x -= 1
         self.nbytes = x + 1
@@ -184,11 +184,11 @@ cdef class TupleProxy:
         # clear data
         if self.fields != NULL:
             free(self.fields)
- 
+
         for field from 0 <= field < self.nfields:
             if isNew(self.fields[field], self.data, self.nbytes):
                 free(self.fields[field])
-                
+
         self.is_modified = self.nfields = 0
 
         #################################
@@ -202,7 +202,7 @@ cdef class TupleProxy:
                     max_fields += 1
             max_fields += 1
 
-        self.fields = <char **>calloc(max_fields, sizeof(char *)) 
+        self.fields = <char **>calloc(max_fields, sizeof(char *))
         if self.fields == NULL:
             raise ValueError("out of memory in TupleProxy.update()")
 
@@ -213,7 +213,6 @@ cdef class TupleProxy:
         field += 1
         old_pos = pos
         while 1:
-            
             pos = <char*>memchr(pos, b'\t', nbytes)
             if pos == NULL:
                 break
@@ -243,7 +242,7 @@ cdef class TupleProxy:
             i += self.nfields
         if i < 0:
             raise IndexError("list index out of range")
-        # apply offset - separating a fixed number 
+        # apply offset - separating a fixed number
         # of fields from a variable number such as in VCF
         i += self.offset
         if i >= self.nfields:
@@ -293,7 +292,7 @@ cdef class TupleProxy:
         if i < 0:
             i += self.nfields
         i += self.offset
-        
+
         self._setindex(i, value)
 
     def __len__(self):
@@ -345,7 +344,7 @@ cdef class TupleProxyIterator:
 def toDot(v):
     '''convert value to '.' if None'''
     if v is None:
-        return "." 
+        return "."
     else:
         return str(v)
 
@@ -353,7 +352,7 @@ def quote(v):
     '''return a quoted attribute.'''
     if isinstance(v, str):
         return '"%s"' % v
-    else: 
+    else:
         return str(v)
 
 
@@ -441,11 +440,11 @@ cdef class GTFProxy(NamedTupleProxy):
         'strand' : (6, (dot_or_str, str)),
         'frame' : (7, (dot_or_int, toDot)),
         'attributes': (8, (str, str))}
-    
-    def __cinit__(self): 
+
+    def __cinit__(self):
         # automatically calls TupleProxy.__cinit__
         self.attribute_dict = None
-        
+
     cpdef int getMinFields(self):
         '''return minimum number of fields.'''
         return 9
@@ -483,22 +482,22 @@ cdef class GTFProxy(NamedTupleProxy):
         cdef int x
 
         if self.is_modified:
-            return "\t".join( 
-                (self.contig, 
-                 toDot(self.source), 
-                 toDot(self.feature), 
+            return "\t".join(
+                (self.contig,
+                 toDot(self.source),
+                 toDot(self.feature),
                  str(self.start + 1),
                  str(self.end),
                  toDot(self.score),
                  toDot(self.strand),
                  toDot(self.frame),
                  self.attributes))
-        else: 
+        else:
             return super().__str__()
 
     def invert(self, int lcontig):
         '''invert coordinates to negative strand coordinates
-        
+
         This method will only act if the feature is on the
         negative strand.'''
 
@@ -529,7 +528,7 @@ cdef class GTFProxy(NamedTupleProxy):
     def attribute_string2dict(self, s):
         return collections.OrderedDict(
             self.attribute_string2iterator(s))
-    
+
     def __cmp__(self, other):
         return (self.contig, self.strand, self.start) < \
             (other.contig, other.strand, other.start)
@@ -567,7 +566,6 @@ cdef class GTFProxy(NamedTupleProxy):
         """convert attribute string in GTF format to records
         and iterate over key, value pairs.
         """
-        
         # remove comments
         attributes = force_str(s, encoding=self.encoding)
 
@@ -605,13 +603,12 @@ cdef class GTFProxy(NamedTupleProxy):
                     pass
                 except TypeError:
                     pass
-                
-            yield n, v
-       
-    def __getattr__(self, key):
-        """Generic lookup of attribute from GFF/GTF attributes 
-        """
 
+            yield n, v
+
+    def __getattr__(self, key):
+        """Generic lookup of attribute from GFF/GTF attributes
+        """
         # Only called if there *isn't* an attribute with this name
         cdef int idx
         idx, f = self.map_key2field.get(key, (-1, None))
@@ -624,7 +621,7 @@ cdef class GTFProxy(NamedTupleProxy):
                     TupleProxy._setindex(self, idx, s)
                     self.attribute_dict = None
                     return s
-                                         
+
             if f[0] == str:
                 return force_str(self.fields[idx],
                                  self.encoding)
@@ -668,26 +665,25 @@ cdef class GTFProxy(NamedTupleProxy):
 
     def fromDict(self, *args, **kwargs):
         return self.from_dict(*args, **kwargs)
-    
+
 
 cdef class GFF3Proxy(GTFProxy):
 
     def dict2attribute_string(self, d):
         """convert dictionary to attribute string."""
         return ";".join(["{}={}".format(k, v) for k, v in d.items()])
-        
+
     def attribute_string2iterator(self, s):
         """convert attribute string in GFF3 format to records
         and iterate over key, value pairs.
         """
-        
         for f in (x.strip() for x in s.split(";")):
             if not f:
                 continue
 
             key, value = f.split("=", 1)
             value = value.strip()
-            
+
             ## try to convert to a value
             try:
                 value = float(value)
@@ -696,9 +692,9 @@ cdef class GFF3Proxy(GTFProxy):
                 pass
             except TypeError:
                 pass
-                
+
             yield key.strip(), value
-   
+
 
 cdef class BedProxy(NamedTupleProxy):
     '''Proxy class for access to Bed fields.
@@ -717,7 +713,8 @@ cdef class BedProxy(NamedTupleProxy):
         'itemRGB' : (8, str),
         'blockCount': (9, int),
         'blockSizes': (10, str),
-        'blockStarts': (11, str), } 
+        'blockStarts': (11, str),
+    }
 
     cpdef int getMinFields(self):
         '''return minimum number of fields.'''
@@ -743,7 +740,7 @@ cdef class BedProxy(NamedTupleProxy):
 
         # do automatic conversion
         self.contig = self.fields[0]
-        self.start = atoi(self.fields[1]) 
+        self.start = atoi(self.fields[1])
         self.end = atoi(self.fields[2])
 
     # __setattr__ in base class seems to take precedence
@@ -771,7 +768,7 @@ cdef class BedProxy(NamedTupleProxy):
         cdef int idx
         idx, f = self.map_key2field[key]
         TupleProxy._setindex(self, idx, str(value))
-        
+
 
 cdef class VCFProxy(NamedTupleProxy):
     '''Proxy class for access to VCF fields.
@@ -779,7 +776,7 @@ cdef class VCFProxy(NamedTupleProxy):
     The genotypes are accessed via a numeric index.
     Sample headers are not available.
     '''
-    map_key2field = { 
+    map_key2field = {
         'contig' : (0, str),
         'pos' : (1, int),
         'id' : (2, str),
@@ -788,16 +785,17 @@ cdef class VCFProxy(NamedTupleProxy):
         'qual' : (5, str),
         'filter' : (6, str),
         'info' : (7, str),
-        'format' : (8, str) }
+        'format' : (8, str),
+    }
 
-    def __cinit__(self): 
+    def __cinit__(self):
         # automatically calls TupleProxy.__cinit__
         # start indexed access at genotypes
         self.offset = 9
 
     cdef update(self, char * buffer, size_t nbytes):
         '''update internal data.
-        
+
         nbytes does not include the terminal '\0'.
         '''
         NamedTupleProxy.update(self, buffer, nbytes)
@@ -805,19 +803,19 @@ cdef class VCFProxy(NamedTupleProxy):
         self.contig = self.fields[0]
         # vcf counts from 1 - correct here
         self.pos = atoi(self.fields[1]) - 1
-                             
+
     def __len__(self):
         '''return number of genotype fields.'''
         return max(0, self.nfields - 9)
 
     property pos:
        '''feature end (in 0-based open/closed coordinates).'''
-       def __get__(self): 
+       def __get__(self):
            return self.pos
 
     def __setattr__(self, key, value):
         '''set attribute.'''
-        if key == "pos": 
+        if key == "pos":
             self.pos = value
             value += 1
 

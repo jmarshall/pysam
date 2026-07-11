@@ -88,7 +88,7 @@ function calls. For example::
 
 corresponds to the command line::
 
-   samtools sort -o output.bam ex1.bam 
+   samtools sort -o output.bam ex1.bam
 
 Analogous to :class:`~pysam.AlignmentFile`, a
 :class:`~pysam.TabixFile` allows fast random access to compressed and

@@ -6,7 +6,7 @@ try:
     import cyvcf2
 except ImportError:
     pass
-    
+
 
 def build_filter_from_vcf_with_samtoolsshell(fn):
     retval = os.popen(
@@ -64,4 +64,3 @@ def build_filter_from_vcf_with_pysam(fn):
                 continue
             n += 1
     return n
-                                        

@@ -212,7 +212,7 @@ cpdef parse_region(contig=None,
     """parse alternative ways to specify a genomic region. A region can
     either be specified by :term:`reference`, `start` and
     `end`. `start` and `end` denote 0-based, half-open intervals.
-    
+
     :term:`reference` and `end` are also accepted for backward
     compatibility as synonyms for :term:`contig` and `stop`,
     respectively.
@@ -240,7 +240,6 @@ cpdef parse_region(contig=None,
     cdef int32_t rstart
     cdef int32_t rstop
 
-    
     if reference is not None:
         if contig is not None:
            raise ValueError('contig and reference should not both be specified')
@@ -248,7 +247,7 @@ cpdef parse_region(contig=None,
 
     if contig is not None and region is not None:
         raise ValueError('contig/reference and region should not both be specified')
-        
+
     if end is not None:
         if stop is not None:
             raise ValueError('stop and end should not both be specified')
@@ -308,7 +307,7 @@ def _pysam_dispatch(collection,
                     is_usage=False,
                     save_stdout=None):
     '''call ``method`` in samtools/bcftools providing arguments in args.
-    
+
     By default, stdout is redirected to a temporary file using the patched
     C sources except for a few commands that have an explicit output option
     (typically: -o). In these commands (such as samtools view), this explicit
@@ -337,7 +336,7 @@ def _pysam_dispatch(collection,
                 raise IOError("No such file or directory: '%s'" % arg)
             else:
                 break
-            
+
     if args is None:
         args = []
     else:
@@ -345,12 +344,12 @@ def _pysam_dispatch(collection,
 
     # redirect stderr to file
     stderr_h, stderr_f = tempfile.mkstemp()
-        
+
     # redirect stdout to file
     if save_stdout:
         stdout_f = save_stdout
         stdout_f_bytes = force_bytes(stdout_f)
-        stdout_h = c_open(stdout_f_bytes, O_WRONLY|O_CREAT|O_TRUNC, 0666)
+        stdout_h = c_open(stdout_f_bytes, O_WRONLY|O_CREAT|O_TRUNC, 0o666)
         if stdout_h == -1:
             raise OSError_from_errno("Could not redirect standard output", stdout_f)
 
@@ -365,7 +364,7 @@ def _pysam_dispatch(collection,
         },
             "bcftools": {}
         }
-        
+
         stdout_option = None
         if collection == "bcftools":
             # in bcftools, most methods accept -o, the exceptions
@@ -461,7 +460,7 @@ def _pysam_dispatch(collection,
         out_stdout = _collect(stdout_f)
     else:
         out_stdout = None
-        
+
     return retval, out_stderr, out_stdout
 
 

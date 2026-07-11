@@ -33,17 +33,14 @@ FILE * @pysam@_set_stderr(int fd);
 FILE * @pysam@_set_stdout(int fd);
 
 /*! set pysam standard output to point to filename
-
  */
 void @pysam@_set_stdout_fn(const char * fn);
 
 /*! close pysam standard error and set to NULL
-  
  */
 void @pysam@_close_stderr(void);
 
 /*! close pysam standard output and set to NULL
-  
  */
 void @pysam@_close_stdout(void);
 

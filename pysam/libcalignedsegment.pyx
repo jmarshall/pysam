@@ -1514,7 +1514,7 @@ cdef class AlignedSegment:
             self.cache.clear_query_qualities()
 
     property query_qualities:
-        """read sequence base qualities, including :term:`soft clipped` bases 
+        """read sequence base qualities, including :term:`soft clipped` bases
         (None if not present).
 
         Quality scores are returned as a python array of unsigned
@@ -1780,7 +1780,7 @@ cdef class AlignedSegment:
     property reference_length:
         '''aligned length of the read on the reference genome.
 
-        This is equal to `reference_end - reference_start`. 
+        This is equal to `reference_end - reference_start`.
         Returns None if not available.
         '''
         def __get__(self):
@@ -1829,9 +1829,9 @@ cdef class AlignedSegment:
 
     property query_alignment_qualities:
         """aligned query sequence quality values (None if not present). These
-        are the quality values that correspond to 
-        :attr:`query_alignment_sequence`, that is, they exclude qualities of 
-        :term:`soft clipped` bases. This is equal to 
+        are the quality values that correspond to
+        :attr:`query_alignment_sequence`, that is, they exclude qualities of
+        :term:`soft clipped` bases. This is equal to
         ``query_qualities[query_alignment_start:query_alignment_end]``.
 
         Quality scores are returned as a python array of unsigned
@@ -1894,7 +1894,7 @@ cdef class AlignedSegment:
         """end index of the aligned query portion of the sequence (0-based,
         exclusive).
 
-        This the index just past the last base in :attr:`query_sequence` 
+        This the index just past the last base in :attr:`query_sequence`
         that is not soft-clipped. (For unmapped reads and when CIGAR is
         unavailable, this will be the length of the query/read.)
         """
@@ -1956,7 +1956,7 @@ cdef class AlignedSegment:
         """
         def __get__(self):
             pmods = self.modified_bases
-            if pmods and self.is_reverse:                
+            if pmods and self.is_reverse:
                 rmod = {}
 
                 # Try to find the length of the original sequence
@@ -1965,18 +1965,16 @@ cdef class AlignedSegment:
                     return rmod
                 else:
                     rlen = len(self.query_sequence)
-                    
+
                 for k,mods in pmods.items():
                     nk = k[0],1 - k[1],k[2]
                     for i in range(len(mods)):
-                        
                         mods[i] = (rlen - 1 -mods[i][0], mods[i][1])
                     rmod[nk] = mods
                 return rmod
-            
+
             return pmods
 
- 
     property query_alignment_length:
         """length of the aligned query sequence.
 
@@ -2925,8 +2923,7 @@ cdef class AlignedSegment:
         def __set__(self, v):
             self.query_length = v
     property query:
-        """deprecated, use :attr:`query_alignment_sequence` 
-        instead."""
+        """deprecated, use :attr:`query_alignment_sequence` instead."""
         def __get__(self):
             return self.query_alignment_sequence
     property qqual:
@@ -2943,8 +2940,7 @@ cdef class AlignedSegment:
         def __get__(self):
             return self.query_alignment_end
     property qlen:
-        """deprecated, use :attr:`query_alignment_length` 
-        instead."""
+        """deprecated, use :attr:`query_alignment_length` instead."""
         def __get__(self):
             return self.query_alignment_length
     property mrnm:
@@ -2954,8 +2950,7 @@ cdef class AlignedSegment:
         def __set__(self, v):
             self.next_reference_id = v
     property mpos:
-        """deprecated, use :attr:`next_reference_start` 
-        instead."""
+        """deprecated, use :attr:`next_reference_start` instead."""
         def __get__(self):
             return self.next_reference_start
         def __set__(self, v):

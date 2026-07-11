@@ -1,4 +1,4 @@
-.. _Usage: 
+.. _Usage:
 
 =========================================
 Working with BAM/CRAM/SAM-formatted files
@@ -14,7 +14,7 @@ To begin with, import the pysam module and open a
    samfile = pysam.AlignmentFile("ex1.bam", "rb")
 
 The above command opens the file :file:`ex1.bam` for reading.
-The ``b`` qualifier indicates that this is a :term:`BAM` file. 
+The ``b`` qualifier indicates that this is a :term:`BAM` file.
 To open a :term:`SAM` file, type::
 
    import pysam
@@ -63,7 +63,7 @@ some additional information::
    iter = samfile.pileup('seq1', 10, 20)
    for x in iter:
       print(str(x))
- 
+
 
 Creating BAM/CRAM/SAM files from scratch
 ========================================
@@ -76,7 +76,7 @@ structure, as lists of names and sizes, or from a template file.
 Here, we use a header dictionary::
 
    header = { 'HD': {'VN': '1.0'},
-               'SQ': [{'LN': 1575, 'SN': 'chr1'}, 
+               'SQ': [{'LN': 1575, 'SN': 'chr1'},
                       {'LN': 1584, 'SN': 'chr2'}] }
 
    with pysam.AlignmentFile(tmpfilename, "wb", header=header) as outf:
@@ -387,7 +387,7 @@ become available through named access, for example::
 
 .. To use :class:`pysam.IteratorSNPCalls`, associate it with a :class:`pysam.IteratorColumn`::
 
-..     samfile = pysam.AlignmentFile( "ex1.bam", "rb")  
+..     samfile = pysam.AlignmentFile( "ex1.bam", "rb")
 ..     fastafile = pysam.Fastafile( "ex1.fa" )
 ..     pileup_iter = samfile.pileup( stepper = "samtools", fastafile = fastafile )
 ..     sncpall_iter = pysam.IteratorSNPCalls(pileup_iter)
@@ -396,13 +396,13 @@ become available through named access, for example::
 
 .. Usage of :class:`pysam.SNPCaller` is similar::
 
-..     samfile = pysam.AlignmentFile( "ex1.bam", "rb")  
+..     samfile = pysam.AlignmentFile( "ex1.bam", "rb")
 ..     fastafile = pysam.Fastafile( "ex1.fa" )
 ..     pileup_iter = samfile.pileup( stepper = "samtools", fastafile = fastafile )
 ..     snpcaller = pysam.SNPCaller.call(pileup_iter)
 ..     print(snpcaller( "chr1", 100 ))
 
-.. Note the use of the option *stepper* to control which reads are included in the 
+.. Note the use of the option *stepper* to control which reads are included in the
 .. in the :term:`pileup`. The ``samtools`` stepper implements the same read selection
 .. and processing as in the samtools pileup command.
 
@@ -427,13 +427,13 @@ flagstat command and consists of three files:
       import _pysam_flagstat
 
       ...
-   
+
       flag_counts = _pysam_flagstat.count(pysam_in)
 
    The first part imports, sets up pyximport_ and imports the cython
    module :file:`_pysam_flagstat`.  The second part calls the
    ``count`` method in :file:`_pysam_flagstat`.
- 
+
 2. The cython implementation :file:`_pysam_flagstat.pyx`. This script
    imports the pysam API via::
 

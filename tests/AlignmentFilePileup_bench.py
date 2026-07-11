@@ -1,4 +1,7 @@
 """Benchmarking module for AlignmentFile functionality"""
+import os
+
+import pysam
 from TestUtils import BAM_DATADIR, flatten_nested_list
 from PileupTestUtils import *
 
@@ -57,7 +60,7 @@ def test_build_query_bases_from_bam_with_samtoolspysam(benchmark):
     result = benchmark(build_query_bases_with_samtoolspysam,
                        os.path.join(BAM_DATADIR, "ex2.bam"))
     assert len("".join(flatten_nested_list(result))) == 116308
-    
+
 
 def test_build_query_bases_from_bam_with_samtoolspipe(benchmark):
     result = benchmark(build_query_bases_with_samtoolspipe,
@@ -85,7 +88,7 @@ def test_build_query_bases_with_reference_from_bam_with_samtoolspipe(benchmark):
                        os.path.join(BAM_DATADIR, "ex2.bam"),
                        "-f", os.path.join(BAM_DATADIR, "ex1.fa"))
     assert len("".join(flatten_nested_list(result))) == 115924
-    
+
 
 def test_build_query_bases_with_reference_from_bam_with_pysam(benchmark):
     with pysam.FastaFile(os.path.join(BAM_DATADIR, "ex1.fa")) as fasta:
@@ -93,7 +96,7 @@ def test_build_query_bases_with_reference_from_bam_with_pysam(benchmark):
                            os.path.join(BAM_DATADIR, "ex2.bam"),
                            fastafile=fasta)
     assert len("".join(flatten_nested_list(result))) == 115924
-    
+
 
 def test_build_query_bases_with_reference_from_bam_with_samtoolspysam(benchmark):
     result = benchmark(build_query_bases_with_samtoolspysam,

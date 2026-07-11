@@ -264,6 +264,5 @@ if len(sys.argv) >= 1:
 #             os.remove(f)
 #         cfiles = locate("*.c", destdir)
 #         _update_pysam_files(cfiles, destdir)
-
+#
 #     sys.exit(0)
-

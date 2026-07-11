@@ -37,7 +37,7 @@ Glossary
 	  inherited for a particular gene.
 
    column
-      The portion of reads aligned to a single base in the 
+      The portion of reads aligned to a single base in the
 	  :term:`reference` sequence.
 
    tid

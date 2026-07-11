@@ -151,7 +151,7 @@ cdef class FastaFile:
         cdef char *cindexname = NULL
         cdef char *cindexname_compressed = NULL
         self.is_remote = hisremote(cfilename)
-        
+
         # open file for reading
         if (self._filename != b"-"
             and not self.is_remote
@@ -169,7 +169,7 @@ cdef class FastaFile:
             if not os.path.exists(filepath_index):
                 raise IOError("filename {} does not exist".format(filepath_index))
             cindexname = bindex_filename = encode_filename(filepath_index)
-            
+
             if filepath_index_compressed:
                 if not os.path.exists(filepath_index_compressed):
                     raise IOError("filename {} does not exist".format(filepath_index_compressed))
@@ -399,11 +399,11 @@ cdef class FastqProxy:
         else:
             return "@%s%s\n%s\n+\n%s" % (self.name, comment,
                                          self.sequence, self.quality)
-    
+
     cdef cython.str tostring(self):
         """deprecated : use :meth:`to_string`"""
         return self.to_string()
-    
+
     def __str__(self):
         return self.to_string()
 
@@ -450,7 +450,7 @@ cdef class FastxRecord:
 
         if self.sequence is None:
             raise ValueError("can not write record without a sequence")
-        
+
         if self.comment is None:
             comment = ""
         else:
@@ -461,7 +461,7 @@ cdef class FastxRecord:
         else:
             return "@%s%s\n%s\n+\n%s" % (self.name, comment,
                                          self.sequence, self.quality)
-        
+
     cdef cython.str tostring(self):
         """deprecated : use :meth:`to_string`"""
         return self.to_string()
@@ -472,8 +472,8 @@ cdef class FastxRecord:
         self.name = name
 
     def set_comment(self, comment):
-        self.comment = comment    
-        
+        self.comment = comment
+
     def set_sequence(self, sequence, quality=None):
         """set sequence of this record.
 

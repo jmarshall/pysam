@@ -18,7 +18,7 @@ def build_fetch_with_samtoolspipe(fn):
                           stderr=FNULL) as proc:
         return len(proc.stdout.readlines())
 
-    
+
 def build_fetch_with_pysam(*args, **kwargs):
     with pysam.AlignmentFile(*args, **kwargs) as inf:
         return len(list(inf.fetch()))
@@ -38,7 +38,7 @@ def build_query_sequences_with_samtoolspipe(fn):
         data = [force_str(x).split()[10] for x in proc.stdout.readlines()]
     return data
 
-    
+
 def build_query_sequences_with_pysam(*args, **kwargs):
     with pysam.AlignmentFile(*args, **kwargs) as inf:
         data = [x.query_sequence for x in inf]
@@ -65,6 +65,7 @@ def build_query_sequences_flagfilter_with_samtoolspipe(fn):
         data = [force_str(x).split()[10] for x in proc.stdout.readlines()]
     return data
 
+
 def build_query_sequences_flagfilter_with_pysam(*args, **kwargs):
     with pysam.AlignmentFile(*args, **kwargs) as inf:
         data = [x.query_sequence for x in inf if x.is_proper_pair]
@@ -84,4 +85,3 @@ def build_aligned_pairs_with_pysam(*args, **kwargs):
         data = [x.get_aligned_pairs(matches_only=matches_only, with_seq=with_seq)
                 for x in inf if x.is_mapped]
     return data
-    

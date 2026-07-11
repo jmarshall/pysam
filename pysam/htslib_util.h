@@ -14,7 +14,7 @@ typedef khash_t(vdict) vdict_t;
 
 KHASH_DECLARE(s2i, kh_cstr_t, int64_t)
 typedef khash_t(s2i) s2i_t;
-		     
+
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
@@ -24,9 +24,9 @@ typedef khash_t(s2i) s2i_t;
 /*!
   @abstract Update the variable length data within a bam1_t entry
 
-  Old data is deleted and the data within b are re-arranged to 
+  Old data is deleted and the data within b are re-arranged to
   make place for new data.
-  
+
   @discussion Return NULL on error, otherwise b is returned.
 
   @param  b           bam1_t data

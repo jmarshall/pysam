@@ -30,7 +30,7 @@ if os.path.exists(_libdir):
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.extlinks',
-              'sphinx.ext.todo', 
+              'sphinx.ext.todo',
               'sphinx.ext.ifconfig',
               'sphinx.ext.intersphinx',
               'sphinx.ext.napoleon']
@@ -44,7 +44,7 @@ templates_path = ['_templates']
 source_suffix = {'.rst': 'restructuredtext'}
 
 # The encoding of source files.
-#source_encoding = 'utf-8'
+# source_encoding = 'utf-8'
 
 # The master toctree document.
 master_doc = 'index'
@@ -119,7 +119,7 @@ exclude_trees = ['_build']
 pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
-#modindex_common_prefix = []
+# modindex_common_prefix = []
 
 # -- Rewrite "PR #NNN" and "#NNN" in NEWS as URL links -------------------------
 
@@ -128,20 +128,24 @@ extlinks = {
     'pull':  ('https://github.com/pysam-developers/pysam/pull/%s', 'PR #%s'),
     }
 
+
 def expand_github_references(text):
     text = re.sub(r'PR\s*#(\d+)', r':pull:`\1`', text)
     text = re.sub(r'#(\d+)', r':issue:`\1`', text)
     return text
 
+
 def include_read(app, relative_path, parent_docname, source):
     if relative_path.name == 'NEWS':
         source[0] = expand_github_references(source[0])
 
+
 def setup(app):
     try:
         app.connect('include-read', include_read)
-    except:
+    except Exception:
         pass  # Sphinx is too old to link issues/PRs
+
 
 # -- Options for HTML output ---------------------------------------------------
 
