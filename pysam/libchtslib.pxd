@@ -1,6 +1,7 @@
 # cython: language_level=3
 from libc.stdint cimport int8_t, int16_t, int32_t, int64_t
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
+from libc.stdio  cimport FILE
 from libc.stdlib cimport malloc, calloc, realloc, free
 from libc.string cimport memcpy, memcmp, strncpy, strlen, strdup
 from posix.types cimport off_t
@@ -29,6 +30,7 @@ cdef extern from "htslib/kstring.h" nogil:
 
     ctypedef char *kgets_func(char *, int, void *)
     int kgetline(kstring_t *s, kgets_func *fgets_fn, void *fp)
+    int kfgetline(kstring_t *s, FILE *fp)
 
     ctypedef ssize_t kgets_func2(char *, size_t, void *)
     int kgetline2(kstring_t *s, kgets_func2 *fgets_fn, void *fp)
@@ -112,6 +114,7 @@ cdef extern from "htslib/hfile.h" nogil:
     ssize_t hgetdelim(char *buffer, size_t size, int delim, hFILE *fp)
     ssize_t hgetln(char *buffer, size_t size, hFILE *fp)
     char *hgets(char *buffer, int size, hFILE *fp)
+    int khgetline(kstring_t *kstr, hFILE *fp)
     ssize_t hpeek(hFILE *fp, void *buffer, size_t nbytes)
     ssize_t hread(hFILE *fp, void *buffer, size_t nbytes)
     int hputc(int c, hFILE *fp)
@@ -636,6 +639,8 @@ cdef extern from "htslib/sam.h" nogil:
         int l_data
         uint32_t m_data
 
+    int BAM_MAX_QNAME_LEN
+
     int bam_is_rev(const bam1_t *b)
     int bam_is_mrev(const bam1_t *b)
 
@@ -1115,6 +1120,7 @@ cdef extern from "htslib/tbx.h" nogil:
     hts_itr_t *tbx_itr_querys(tbx_t *tbx, const char *s)
     int tbx_itr_next(htsFile *fp, tbx_t *tbx, hts_itr_t *itr, kstring_t *r)
     int tbx_bgzf_itr_next(BGZF *fp, tbx_t *tbx, hts_itr_t *itr, kstring_t *r)
+    hts_itr_t *tbx_itr_regarray(tbx_t *tbx, char **regarray, unsigned int regcount)
 
     int tbx_name2id(tbx_t *tbx, const char *ss)
     BGZF *hts_get_bgzfp(htsFile *fp)
@@ -1454,7 +1460,8 @@ cdef extern from "htslib/vcf.h" nogil:
 
     void bcf_itr_destroy(hts_itr_t *iter)
     hts_itr_t *bcf_itr_queryi(const hts_idx_t *idx, int tid, hts_pos_t beg, hts_pos_t end)
-    hts_itr_t *bcf_itr_querys(const hts_idx_t *idx, const bcf_hdr_t *hdr, const char *s)
+    hts_itr_t *bcf_itr_querys(const hts_idx_t *idx, bcf_hdr_t *hdr, const char *s)
+    hts_itr_t *bcf_itr_regarray(const hts_idx_t *idx, bcf_hdr_t *hdr, char **regarray, unsigned int regcount)
     int bcf_itr_next(htsFile *htsfp, hts_itr_t *itr, void *r)
 
     hts_idx_t *bcf_index_load(const char *fn)
