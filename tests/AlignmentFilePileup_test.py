@@ -207,7 +207,8 @@ class TestPileupObjects(unittest.TestCase):
     def tearDown(self):
         self.samfile.close()
 
-    @unittest.skipIf(sys.version_info >= (3, 11), "exercises invalid accesses, which crashes with Python 3.11")
+    @unittest.skipIf(sys.version_info[:2] == (3, 11) or sys.platform.startswith("netbsd"),
+                     "exercises invalid accesses, which crashes on Python 3.11 and NetBSD")
     def testIteratorOutOfScope(self):
         '''test if exception is raised if pileup col is accessed after
         iterator is exhausted.'''
@@ -337,6 +338,7 @@ class TestIteratorColumn2(unittest.TestCase):
         self.assertEqual(len(columns), 3)
         self.assertEqual(columns, [169, 170, 171])
 
+    @unittest.skipIf(sys.platform.startswith("netbsd"), "exercises invalid accesses, crashing on NetBSD")
     def testAccessOnClosedIterator(self):
         '''see issue 131
 
