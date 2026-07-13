@@ -6,6 +6,8 @@ import inspect
 import subprocess
 import tempfile
 import time
+from itertools import zip_longest
+from urllib.request import urlopen
 
 import pysam
 
@@ -28,15 +30,12 @@ LINKDIR = os.path.abspath(os.path.join(
 TESTS_TEMPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "tmp"))
 
 
-from itertools import zip_longest
-from urllib.request import urlopen
-
-
 def force_str(s):
     try:
         return s.decode('ascii')
     except AttributeError:
         return s
+
 
 def force_bytes(s):
     try:
@@ -53,6 +52,14 @@ def openfile(fn):
             return gzip.open(fn, "r")
     else:
         return open(fn)
+
+
+def slurp_file(filename, omit_startswith=None, omit=None):
+    with openfile(filename) as f:
+        if omit is not None:
+            return [line for line in f if not omit(line)]
+        else:
+            return f.readlines()
 
 
 def checkBinaryEqual(filename1, filename2):
@@ -141,12 +148,13 @@ def check_url(url):
     try:
         urlopen(url, timeout=1)
         return True
-    except:
+    except Exception:
         return False
 
 
-def checkFieldEqual(cls, read1, read2, exclude=[]):
-    '''check if two reads are equal by comparing each field.'''
+def dict_of_read(read, exclude=frozenset()):
+    '''return a read in dictionary form, omitting excluded fields.'''
+    d = {}
 
     # add the . for refactoring purposes.
     for x in (".query_name",
@@ -171,34 +179,10 @@ def checkFieldEqual(cls, read1, read2, exclude=[]):
               ".is_secondary", ".is_qcfail",
               ".is_duplicate"):
         n = x[1:]
-        if n in exclude:
-            continue
-        cls.assertEqual(getattr(read1, n), getattr(read2, n),
-                        "attribute mismatch for %s: %s != %s" %
-                        (n, getattr(read1, n), getattr(read2, n)))
+        if n not in exclude:
+            d[n] = getattr(read, n)
 
-
-def check_lines_equal(cls, a, b, sort=False, filter_f=None, msg=None):
-    """check if contents of two files are equal comparing line-wise.
-
-    sort: bool
-       sort contents of both files before comparing.
-    filter_f:
-       remover lines in both a and b where expression is True
-    """
-    with openfile(a) as inf:
-        aa = inf.readlines()
-    with openfile(b) as inf:
-        bb = inf.readlines()
-
-    if filter_f is not None:
-        aa = [x for x in aa if not filter_f(x)]
-        bb = [x for x in bb if not filter_f(x)]
-
-    if sort:
-        cls.assertEqual(sorted(aa), sorted(bb), msg)
-    else:
-        cls.assertEqual(aa, bb, msg)
+    return d
 
 
 def get_temp_filename(suffix=""):
@@ -217,6 +201,7 @@ def get_temp_filename(suffix=""):
     f.close()
     return f.name
 
+
 @contextlib.contextmanager
 def get_temp_context(suffix="", keep=False):
     caller_name = inspect.getouterframes(inspect.currentframe(), 3)[1][3]
@@ -233,7 +218,7 @@ def get_temp_context(suffix="", keep=False):
 
     f.close()
     yield f.name
-    
+
     if not keep:
         # clear up any indices as well
         for f in glob.glob(f.name + "*"):

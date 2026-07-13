@@ -146,6 +146,7 @@ def test_samtools_subcommands() -> None:
     for var, vartype in types.items():
         assert vartype.endswith('PysamDispatcher'), f'{var!r} is not a dispatcher'
 
+
 def test_AlignmentFile_filenames(sam_fname: str) -> None:
     fp1 = pysam.AlignmentFile(sam_fname)
     fp2 = pysam.AlignmentFile(sam_fname.encode())
@@ -167,6 +168,7 @@ def test_AlignmentFile_filenames(sam_fname: str) -> None:
 
     if TYPE_CHECKING: reveal_locals()
     types = typecheck()
+
 
 def test_VariantFile_filenames(vcf_fname: str) -> None:
     fp1 = pysam.VariantFile(vcf_fname)

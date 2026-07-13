@@ -15,7 +15,8 @@ def vcf_header():
     vcf_header.contigs.add("1")
     return vcf_header
 
-## segfault without coordinates
+# segfault without coordinates
+
 
 def test_ascii_annotation_can_be_added(vcf_header):
     vcf_header.formats.add("AN", 1, "String", "An annotation")
@@ -47,7 +48,7 @@ def test_ascii_annotation_with_variable_length_can_be_added(vcf_header):
             {"AN": "anno2"},
             {"AN": "anno2b"}])
     assert str(record)[:-1].split("\t")[-2:] == ["anno2", "anno2b"]
-    
+
 
 def test_unicode_annotation_can_be_added(vcf_header):
     vcf_header.formats.add("AN", 1, "String", "An annotation")
@@ -62,17 +63,18 @@ def test_unicode_annotation_can_be_added(vcf_header):
         "anno1",
         "Friedrich-Alexander-Universit\u00E4t_Erlangen-N\u00FCrnberg"]
 
+
 def test_set_sample_alleles(vcf_header):
-    vcf_header.formats.add('GT',1,'String',"Genotype") # id, number, type, description
+    vcf_header.formats.add('GT', 1, 'String', "Genotype")  # id, number, type, description
     record = vcf_header.new_record(
         contig="1",
         start=20,
         stop=21,
-        alleles=('A','T')
+        alleles=('A', 'T')
         )
 
     record.samples['sample1'].alleles = ('T', 'A')
-    assert record.samples['sample1'].alleles  == ('T','A')
+    assert record.samples['sample1'].alleles  == ('T', 'A')
 
     # Empty record:
     record.samples['sample1'].alleles = (None, )
@@ -89,6 +91,7 @@ def test_set_sample_alleles(vcf_header):
     with pytest.raises(ValueError, match='Use .allele_indices to set integer allele indices'):
         record.samples['sample1'].alleles = (1, 0)
 
+
 def test_sample_update_dict(vcf_header):
     vcf_header.formats.add("DA", 1, "Integer", "Misc")
     vcf_header.formats.add("DB", 1, "String", "Misc")
@@ -96,6 +99,7 @@ def test_sample_update_dict(vcf_header):
 
     rec.samples["sample1"].update({"DA": 28, "DB": "test"})
     assert dict(rec.samples["sample1"]) == {"DA": 28, "DB": "test"}
+
 
 def test_sample_update_iterable(vcf_header):
     vcf_header.formats.add("YA", 1, "Integer", "Misc")
@@ -109,6 +113,7 @@ def test_sample_update_iterable(vcf_header):
     rec.samples["sample1"].update(yield_formats())
     assert dict(rec.samples["sample1"]) == {"YA": 28, "YB": "test"}
 
+
 def test_sample_update_keywords(vcf_header):
     vcf_header.formats.add("KA", 1, "Integer", "Misc")
     vcf_header.formats.add("KB", 1, "String", "Misc")
@@ -116,6 +121,7 @@ def test_sample_update_keywords(vcf_header):
 
     rec.samples["sample1"].update(KA=28, KB="test")
     assert dict(rec.samples["sample1"]) == {"KA": 28, "KB": "test"}
+
 
 def test_sample_update_dict_and_keywords(vcf_header):
     vcf_header.formats.add("DA", 1, "Integer", "Misc")
@@ -126,6 +132,7 @@ def test_sample_update_dict_and_keywords(vcf_header):
 
     rec.samples["sample1"].update({"DA": 28, "DB": "test"}, KA=28, KB="test")
     assert dict(rec.samples["sample1"]) == {"DA": 28, "DB": "test", "KA": 28, "KB": "test"}
+
 
 def test_repeated_new_record(vcf_header):
     vcf_header.formats.add('GT', 1, 'String', "Genotype")

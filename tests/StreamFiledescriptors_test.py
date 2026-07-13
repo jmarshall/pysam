@@ -2,7 +2,9 @@ import os
 import subprocess
 import threading
 import errno
-import unittest
+
+import pytest
+
 from pysam import AlignmentFile
 from TestUtils import make_data_files, BAM_DATADIR
 
@@ -31,10 +33,9 @@ def alignmentfile_writer_thread(infile, outfile):
     return writer
 
 
-class StreamTest(unittest.TestCase):
+class TestStream:
 
     def stream_process(self, proc, in_stream, out_stream, writer):
-
         with AlignmentFile(proc.stdout) as infile:
             read = 0
             for record in infile:
@@ -42,7 +43,6 @@ class StreamTest(unittest.TestCase):
         return 0, read
 
     def test_text_processing(self):
-
         with subprocess.Popen('head -n200',
                               stdin=subprocess.PIPE,
                               stdout=subprocess.PIPE,
@@ -58,11 +58,10 @@ class StreamTest(unittest.TestCase):
                                                 in_stream,
                                                 out_stream,
                                                 writer)
-            self.assertEqual(read, 198)
+            assert read == 198
 
-    @unittest.skip("test contains bug")
+    @pytest.mark.skip("test contains bug")
     def test_samtools_processing(self):
-
         # The following test causes the suite to hang
         # as the stream_processor raises:
         # ValueError: file has no sequences defined (mode='r') - is it SAM/BAM format?
@@ -82,8 +81,4 @@ class StreamTest(unittest.TestCase):
                                                 in_stream,
                                                 out_stream,
                                                 writer)
-            self.assertEqual(read, 35)
-
-
-if __name__ == "__main__":
-    unittest.main()
+            assert read == 35
