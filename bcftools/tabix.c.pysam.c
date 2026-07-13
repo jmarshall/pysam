@@ -55,8 +55,8 @@ int main_tabix(int argc, char *argv[])
             else {
                 fprintf(bcftools_stderr, "The type '%s' not recognised\n", optarg);
                 return 1;
-            detect = 0;
             }
+            detect = 0;
 
         }
     if (optind == argc) {
@@ -79,6 +79,10 @@ int main_tabix(int argc, char *argv[])
         BGZF *fp;
         s.l = s.m = 0; s.s = 0;
         fp = bgzf_open(argv[optind], "r");
+        if (!fp) {
+            fprintf(bcftools_stderr, "[E::%s] could not open '%s'\n", __func__, argv[optind]);
+            return 1;
+        }
         while (bgzf_getline(fp, '\n', &s) >= 0) bcftools_puts(s.s);
         bgzf_close(fp);
         free(s.s);

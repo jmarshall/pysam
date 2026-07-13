@@ -2,7 +2,7 @@
 
 /*  stats.c -- This is the former bamcheck integrated into samtools/htslib.
 
-    Copyright (C) 2012-2025 Genome Research Ltd.
+    Copyright (C) 2012-2026 Genome Research Ltd.
 
     Author: Petr Danecek <pd3@sanger.ac.uk>
     Author: Sam Nicholls <sam@samnicholls.net>
@@ -192,7 +192,7 @@ typedef struct
     int nindels;        // The maximum indel length for indel distribution
 
     // Arrays for the histogram data
-    uint64_t *quals_1st, *quals_2nd;
+    uint64_t **quals_1st, **quals_2nd;
     uint64_t *gc_1st, *gc_2nd;
     acgtno_count_t *acgtno_cycles_1st, *acgtno_cycles_2nd;
     acgtno_count_t *acgtno_revcomp;
@@ -207,6 +207,7 @@ typedef struct
     int max_len_1st;        // Maximum read length for forward reads
     int max_len_2nd;        // Maximum read length for reverse reads
     int max_qual;           // Maximum quality
+    int max_qual_alloc;     // Size of quals_1st / quals_2nd
     int is_sorted;
 
     // Summary numbers
@@ -653,19 +654,46 @@ void realloc_gcd_buffer(stats_t *stats, int seq_len)
     realloc_rseq_buffer(stats);
 }
 
+void realloc_qual_buffers(stats_t *stats, int old_len, int new_len,
+                          int new_max_qual) {
+    int n = new_len+1;
+    int mq = new_max_qual+2; // we have a stats->max_qual++ when printing
+    if (mq < stats->max_qual_alloc)
+        abort();
+    int old_max_qual = stats->max_qual_alloc;
+    stats->max_qual_alloc = mq;
+
+    stats->quals_1st = realloc(stats->quals_1st, mq*sizeof(*stats->quals_1st));
+    stats->quals_2nd = realloc(stats->quals_2nd, mq*sizeof(*stats->quals_2nd));
+    if (!stats->quals_1st || !stats->quals_2nd)
+        error("Could not realloc buffers, the sequence too long: %d (%ld)\n", n,n*stats->nquals*sizeof(uint64_t));
+    memset(&stats->quals_1st[old_max_qual], 0,
+           (mq-old_max_qual)*sizeof(*stats->quals_1st));
+    memset(&stats->quals_2nd[old_max_qual], 0,
+           (mq-old_max_qual)*sizeof(*stats->quals_2nd));
+
+    for (int q = 0; q < mq; q++) {
+        if (!(stats->quals_1st[q] = realloc(stats->quals_1st[q],
+                                            n * sizeof(**stats->quals_1st))) ||
+            !(stats->quals_2nd[q] = realloc(stats->quals_2nd[q],
+                                            n * sizeof(**stats->quals_2nd))))
+            error("Could not realloc buffers, the sequence too long: %d (%ld)\n", n,n*stats->nquals*sizeof(uint64_t));
+
+        // Clear new extension if len has increased, or clear entire array
+        // if max qual has increased.
+        int pstart = q >= old_max_qual ? 0 : old_len;
+        memset(&stats->quals_1st[q][pstart], 0,
+               (new_len-pstart)*sizeof(**stats->quals_1st));
+        memset(&stats->quals_2nd[q][pstart], 0,
+               (new_len-pstart)*sizeof(**stats->quals_2nd));
+    }
+}
+
 void realloc_buffers(stats_t *stats, int seq_len)
 {
     int n = 2*(1 + seq_len - stats->nbases) + stats->nbases;
 
-    stats->quals_1st = realloc(stats->quals_1st, n*stats->nquals*sizeof(uint64_t));
-    if ( !stats->quals_1st )
-        error("Could not realloc buffers, the sequence too long: %d (%ld)\n", seq_len,n*stats->nquals*sizeof(uint64_t));
-    memset(stats->quals_1st + stats->nbases*stats->nquals, 0, (n-stats->nbases)*stats->nquals*sizeof(uint64_t));
-
-    stats->quals_2nd = realloc(stats->quals_2nd, n*stats->nquals*sizeof(uint64_t));
-    if ( !stats->quals_2nd )
-        error("Could not realloc buffers, the sequence too long: %d (2x%ld)\n", seq_len,n*stats->nquals*sizeof(uint64_t));
-    memset(stats->quals_2nd + stats->nbases*stats->nquals, 0, (n-stats->nbases)*stats->nquals*sizeof(uint64_t));
+    realloc_qual_buffers(stats, stats->nbases, n, stats->max_qual);
 
     if ( stats->mpc_buf )
     {
@@ -952,7 +980,7 @@ void collect_orig_read_stats(bam1_t *bam_line, stats_t *stats, int* gc_count_out
     // Determine which array (1st or 2nd read) will these stats go to,
     //  trim low quality bases from end the same way BWA does,
     //  fill GC histogram
-    uint64_t *quals = NULL;
+    uint64_t **quals = NULL;
     uint8_t *bam_quals = bam_get_qual(bam_line);
 
     switch (order) {
@@ -983,10 +1011,15 @@ void collect_orig_read_stats(bam1_t *bam_line, stats_t *stats, int* gc_count_out
             uint8_t qual = bam_quals[ reverse ? seq_len-i-1 : i];
             if ( qual>=stats->nquals )
                 error("TODO: quality too high %d>=%d (%s %"PRIhts_pos" %s)\n", qual, stats->nquals, sam_hdr_tid2name(stats->info->sam_header, bam_line->core.tid), bam_line->core.pos+1, bam_get_qname(bam_line));
-            if ( qual>stats->max_qual )
+            if ( qual>stats->max_qual ) {
+                realloc_qual_buffers(stats, stats->nbases, stats->nbases, qual);
+                quals = order==READ_ORDER_FIRST
+                    ? stats->quals_1st
+                    : stats->quals_2nd;
                 stats->max_qual = qual;
+            }
 
-            quals[ i*stats->nquals+qual ]++;
+            quals[qual][i]++;
             stats->sum_qual += qual;
         }
     }
@@ -1314,12 +1347,14 @@ void collect_stats(bam1_t *bam_line, stats_t *stats, khash_t(qn2pair) *read_pair
         {
             int cig  = bam_cigar_op(bam_get_cigar(bam_line)[i]);
             int ncig = bam_cigar_oplen(bam_get_cigar(bam_line)[i]);
+            int ncig_init = ncig;
+
             if ( !ncig ) continue;  // curiously, this can happen: 0D
             if ( cig==BAM_CDEL ) readlen += ncig;
             else if ( cig==BAM_CMATCH || cig==BAM_CEQUAL || cig==BAM_CDIFF )
             {
                 if ( iref < stats->reg_from ) ncig -= stats->reg_from-iref;
-                else if ( iref+ncig-1 > stats->reg_to ) ncig -= iref+ncig-1 - stats->reg_to;
+                if ( iref+ncig_init-1 > stats->reg_to ) ncig -= iref+ncig_init-1 - stats->reg_to;
                 if ( ncig<0 ) ncig = 0;
                 stats->nbases_mapped_cigar += ncig;
                 iref += bam_cigar_oplen(bam_get_cigar(bam_line)[i]);
@@ -1615,7 +1650,8 @@ void output_stats(FILE *to, stats_t *stats, int sparse)
 
     int ibase,iqual;
     if ( stats->max_len<stats->nbases ) stats->max_len++;
-    if ( stats->max_qual+1<stats->nquals ) stats->max_qual++;
+    if ( stats->max_qual+1<stats->nquals && stats->max_qual<255 )
+        stats->max_qual++;
     fprintf(to, "# First Fragment Qualities. Use `grep ^FFQ | cut -f 2-` to extract this part.\n");
     fprintf(to, "# Columns correspond to qualities and rows to cycles. First column is the cycle number.\n");
     for (ibase=0; ibase<stats->max_len_1st; ibase++)
@@ -1623,7 +1659,7 @@ void output_stats(FILE *to, stats_t *stats, int sparse)
         fprintf(to, "FFQ\t%d",ibase+1);
         for (iqual=0; iqual<=stats->max_qual; iqual++)
         {
-            fprintf(to, "\t%ld", (long)stats->quals_1st[ibase*stats->nquals+iqual]);
+            fprintf(to, "\t%ld", (long)stats->quals_1st[iqual][ibase]);
         }
         fprintf(to, "\n");
     }
@@ -1634,7 +1670,7 @@ void output_stats(FILE *to, stats_t *stats, int sparse)
         fprintf(to, "LFQ\t%d",ibase+1);
         for (iqual=0; iqual<=stats->max_qual; iqual++)
         {
-            fprintf(to, "\t%ld", (long)stats->quals_2nd[ibase*stats->nquals+iqual]);
+            fprintf(to, "\t%ld", (long)stats->quals_2nd[iqual][ibase]);
         }
         fprintf(to, "\n");
     }
@@ -1926,7 +1962,7 @@ static void init_regions(stats_t *stats, const char *file, stats_info_t* info)
     int warned = 0, r, p, new_p;
     int prev_tid=-1;
     hts_pos_t prev_pos=-1LL;
-    while (line.l = 0, kgetline(&line, (kgets_func *)fgets, fp) >= 0)
+    while (line.l = 0, kfgetline(&line, fp) >= 0)
     {
         if ( line.s[0] == '#' ) continue;
 
@@ -2154,7 +2190,7 @@ error(const char *format, ...)
         fprintf(samtools_stdout, "Options:\n");
         fprintf(samtools_stdout, "    -c, --coverage <int>,<int>,<int>    Coverage distribution min,max,step [1,1000,1]\n");
         fprintf(samtools_stdout, "    -d, --remove-dups                   Exclude from statistics reads marked as duplicates\n");
-        fprintf(samtools_stdout, "    -X, --customized-index-file         Use a customized index file\n");
+        fprintf(samtools_stdout, "    -X, --customized-index              Use a customized index file\n");
         fprintf(samtools_stdout, "    -f, --required-flag  <str|int>      Required flag, 0 for unset. See also `samtools flags` [0]\n");
         fprintf(samtools_stdout, "    -F, --filtering-flag <str|int>      Filtering flag, 0 for unset. See also `samtools flags` [0]\n");
         fprintf(samtools_stdout, "        --GC-depth <float>              the size of GC-depth bins (decreasing bin size increases memory requirement) [2e4]\n");
@@ -2196,6 +2232,10 @@ void cleanup_stats_info(stats_info_t* info){
 void cleanup_stats(stats_t* stats)
 {
     free(stats->cov_rbuf.buffer); free(stats->cov);
+    for (int q = 0; q < stats->max_qual_alloc; q++) {
+        free(stats->quals_1st[q]);
+        free(stats->quals_2nd[q]);
+    }
     free(stats->quals_1st); free(stats->quals_2nd);
     free(stats->gc_1st); free(stats->gc_2nd);
     stats->isize->isize_free(stats->isize->data);
@@ -2320,7 +2360,7 @@ stats_t* stats_init(void)
         return NULL;
 
     stats->ngc    = 200;
-    stats->nquals = 256;
+    stats->nquals = 257; // NB: 95 is better, but need to handle qual "*"
     stats->nbases = 300;
     stats->rseq_pos     = -1;
     stats->tid = -1;
@@ -2373,10 +2413,7 @@ static void init_stat_structs(stats_t* stats, stats_info_t* info, const char* gr
     if (!stats->cov_rbuf.buffer) goto nomem;
     if ( group_id ) init_group_id(stats, info, group_id);
     // .. arrays
-    stats->quals_1st      = calloc(stats->nquals*stats->nbases,sizeof(uint64_t));
-    if (!stats->quals_1st) goto nomem;
-    stats->quals_2nd      = calloc(stats->nquals*stats->nbases,sizeof(uint64_t));
-    if (!stats->quals_2nd) goto nomem;
+    realloc_qual_buffers(stats, 0, stats->nbases, 0);
     stats->gc_1st         = calloc(stats->ngc,sizeof(uint64_t));
     if (!stats->gc_1st) goto nomem;
     stats->gc_2nd         = calloc(stats->ngc,sizeof(uint64_t));
@@ -2686,7 +2723,7 @@ int main_stats(int argc, char *argv[])
         {"help", no_argument, NULL, 'h'},
         {"remove-dups", no_argument, NULL, 'd'},
         {"sam", no_argument, NULL, 's'},
-        {"customized-index-file", required_argument, NULL, 'X'},
+        {"customized-index", no_argument, NULL, 'X'},
         {"ref-seq", required_argument, NULL, 'r'},
         {"coverage", required_argument, NULL, 'c'},
         {"read-length", required_argument, NULL, 'l'},
