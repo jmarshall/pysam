@@ -85,7 +85,7 @@ jobs:
         include:
           - os: freebsd
             version: "15.0"
-            python-version: "3.11"
+            python-version: "3.12"
 
           - os: netbsd
             version: "10.1"
