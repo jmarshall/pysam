@@ -5,7 +5,7 @@ license = { text = "MIT License" }
 authors = [
  { name = "Andreas Heger", email = "andreas.heger@gmail.com"}
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 dynamic = [
     "classifiers",
@@ -28,13 +28,3 @@ before-build = "make -C {project}/htslib distclean"
 
 test-requires = ["pytest"]
 test-command = "pytest {project}/tests"
-
-[tool.tox]
-legacy_tox_ini = """
-    [tox]
-    envlist = py38, py311
-
-    [testenv]
-    deps = pytest
-    commands = pytest tests
-"""

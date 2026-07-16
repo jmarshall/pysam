@@ -18,16 +18,7 @@ jobs:
       matrix:
         kind: [macos, many, musl]
         arch: [arm, intel]
-        build: ["cp38-* cp39-*", "cp310-* cp311-*", "cp312-* cp313-* cp314-*"]
-        x64image: [manylinux_2_28]
-        nametag: [none]
-
-        include:
-          - kind: many
-            arch: intel
-            build: "cp38-manylinux_x86_64"
-            x64image: manylinux2014
-            nametag: focal
+        build: ["cp39-* cp310-* cp311-*", "cp312-* cp313-* cp314-*"]
 
     steps:
       - name: Checkout pysam
@@ -44,7 +35,7 @@ jobs:
         uses: pypa/cibuildwheel@v3.4.1
         env:
           CIBW_BUILD: ${{ matrix.build }}
-          CIBW_SKIP:  ${{ case(matrix.kind == 'many', '*-musllinux_*', '*-manylinux_*') }} cp38-macosx_arm64
+          CIBW_SKIP:  ${{ case(matrix.kind == 'many', '*-musllinux_*', '*-manylinux_*') }}
 
           CIBW_BUILD_VERBOSITY: 1
 
@@ -53,15 +44,13 @@ jobs:
 
           CIBW_ARCHS: native
 
-          CIBW_MANYLINUX_X86_64_IMAGE:  ${{ matrix.x64image }}
+          CIBW_MANYLINUX_X86_64_IMAGE:  manylinux_2_28
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
           CIBW_MUSLLINUX_X86_64_IMAGE:  musllinux_1_2
           CIBW_MUSLLINUX_AARCH64_IMAGE: musllinux_1_2
 
       - name: Check wheelhouse
         run:  devtools/artifactname.py wheelhouse/*.whl >> $GITHUB_ENV
-        env:
-          NAMETAG: ${{ matrix.nametag }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7

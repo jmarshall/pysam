@@ -104,7 +104,7 @@ def run_nm_defined_symbols(objfile):
         if symtype not in "UFNWw" and not cython_internal(sym):
             if IS_DARWIN:
                 # On macOS, all symbols have a leading underscore
-                symbols.add(sym[1:] if sym.startswith("_") else sym)
+                symbols.add(sym.removeprefix("_"))
             else:
                 # Ignore symbols such as _edata (present in all shared objects)
                 if sym[0] not in "_$.@": symbols.add(sym)
