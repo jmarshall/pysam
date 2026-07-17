@@ -33,17 +33,14 @@ FILE * bcftools_set_stderr(int fd);
 FILE * bcftools_set_stdout(int fd);
 
 /*! set pysam standard output to point to filename
-
  */
 void bcftools_set_stdout_fn(const char * fn);
 
 /*! close pysam standard error and set to NULL
-  
  */
 void bcftools_close_stderr(void);
 
 /*! close pysam standard output and set to NULL
-  
  */
 void bcftools_close_stdout(void);
 
@@ -56,7 +53,7 @@ void PYSAM_NORETURN bcftools_exit(int status);
 extern int bcftools_main(int argc, char *argv[]);
 
 /* Define these only in samtools/bcftools C source, not Cython code. */
-#if !(defined CYTHON_ABI || defined CYTHON_HEX_VERSION)
+#ifndef CYTHON_HEX_VERSION
 
 /*! Several non-static function names are used in both samtools and bcftools.
     Both libcsamtools.so and libcbcftools.so are loaded simultaneously, leading
