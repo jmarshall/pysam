@@ -25,13 +25,11 @@ prune tests/
 # samtools
 include samtools/LICENSE samtools/README samtools/lz4/LICENSE
 recursive-include samtools *.[ch]
-include samtools/version.sh
 exclude samtools/*config*.h
 
 # bcftools
 include bcftools/LICENSE bcftools/README
 include bcftools/*.[ch]
-include bcftools/version.sh
 exclude bcftools/*config*.h
 
 # htslib

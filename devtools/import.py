@@ -49,13 +49,6 @@ MAIN = {
 }
 
 
-C_VERSION = {
-    "htslib":   "HTS_VERSION_TEXT",
-    "samtools": "SAMTOOLS_VERSION",
-    "bcftools": "BCFTOOLS_VERSION"
-}
-
-
 def locate(pattern, root=os.curdir, exclude=[], exclude_htslib=False):
     '''Locate all files matching supplied filename pattern (but not listed
     in exclude) in and below the supplied root directory. Omit any files under
@@ -151,8 +144,7 @@ if len(sys.argv) >= 1:
 
     cfiles = locate("*.c", srcdir, exclude=exclude, exclude_htslib=True)
     hfiles = locate("*.h", srcdir, exclude=exclude, exclude_htslib=True)
-    mfiles = itertools.chain(locate("README", srcdir), locate("LICENSE", srcdir),
-                             locate("version.sh", srcdir, exclude_htslib=True))
+    mfiles = itertools.chain(locate("README", srcdir), locate("LICENSE", srcdir))
 
     if dest == "htslib":
         # Add build files, including *.ac config.{guess,sub} *.in *.mk *.m4 *.sh
@@ -244,12 +236,14 @@ if len(sys.argv) >= 1:
 
     version = _getVersion(srcdir)
     _update_version_file("__{}_version__".format(dest), version, "pysam/version.py")
-    _update_version_file(C_VERSION[dest], version + " (pysam)", "pysam/version.h")
     _update_version_doc_file(dest, version, "README.rst")
     _update_version_doc_file(dest, version, "doc/index.rst")
     if dest in MAIN:
         path = Path("doc/conf.py")
         path.write_text(re.sub(rf"doc/[\d.]*/{dest}", rf"doc/{version}/{dest}", path.read_text()))
+
+        text = f'#define {dest.upper()}_VERSION "{version}"  /* Extracted from {dest}/version.sh */\n'
+        (Path(destdir) / "version.h").write_text(text)
 
     sys.exit(0)
 
