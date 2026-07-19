@@ -6,7 +6,7 @@ import pytest
 
 import pysam
 import pysam.samtools
-from TestUtils import get_temp_filename, make_data_files, BAM_DATADIR
+from TestUtils import make_data_files, BAM_DATADIR
 
 
 def setUpModule():
@@ -223,16 +223,15 @@ class TestHeaderFromRefs:
     reference names need to be converted to string for python 3
     '''
 
-    # def testHeader( self ):
+    # def testHeader(self, tmp_path):
     #     refs = ['chr1', 'chr2']
-    #     tmpfile = "tmp_%i" % id(self)
+    #     tmpfile = str(tmp_path / f"tmp_{id(self)}")
     #     s = pysam.AlignmentFile(tmpfile, 'wb',
     #                       referencenames=refs,
     #                       referencelengths=[100]*len(refs))
     #     s.close()
-
+    #
     #     assert checkBinaryEqual('issue144.bam', tmpfile), 'bam files differ'
-    #     os.unlink( tmpfile )
 
 
 class TestHeaderWriteRead:
@@ -267,8 +266,7 @@ class TestHeaderWriteRead:
                             pass
                 assert row_a == row_b
 
-    def check_read_write(self, flag_write, header):
-        fn = get_temp_filename()
+    def check_read_write(self, fn, flag_write, header):
         with pysam.AlignmentFile(
                 fn,
                 flag_write,
@@ -282,20 +280,19 @@ class TestHeaderWriteRead:
         with pysam.AlignmentFile(fn) as inf:
             read_header = inf.header
 
-        os.unlink(fn)
         self.compare_headers(header, read_header)
         expected_lengths = dict([(x["SN"], x["LN"]) for x in header["SQ"]])
         assert dict(zip(read_header.references, read_header.lengths)) == expected_lengths
 
-    def test_SAM(self):
-        self.check_read_write("wh", self.header)
+    def test_SAM(self, tmp_path):
+        self.check_read_write(tmp_path / "output.sam", "wh", self.header)
 
-    def test_BAM(self):
-        self.check_read_write("wb", self.header)
+    def test_BAM(self, tmp_path):
+        self.check_read_write(tmp_path / "output.bam", "wb", self.header)
 
-    def test_CRAM(self):
+    def test_CRAM(self, tmp_path):
         header = copy.copy(self.header)
-        self.check_read_write("wc", header)
+        self.check_read_write(tmp_path / "output.cram", "wc", header)
 
 
 class TestHeaderLargeContigs(TestHeaderWriteRead):

@@ -6,7 +6,7 @@ import shutil
 
 import pytest
 
-from TestUtils import check_url, make_data_files, BAM_DATADIR, get_temp_filename
+from TestUtils import check_url, make_data_files, BAM_DATADIR
 
 
 def setUpModule():
@@ -85,8 +85,8 @@ class TestFastaFilePathIndex:
                              filepath_index=self.filename + ".fai") as inf:
             assert len(inf) == 2
 
-    def test_open_file_with_explicit_abritrarily_named_index_succeeds(self):
-        tmpfilename = get_temp_filename(self.data_suffix)
+    def test_open_file_with_explicit_abritrarily_named_index_succeeds(self, tmp_path):
+        tmpfilename = str(tmp_path / f"copy{self.data_suffix}")
         shutil.copyfile(self.filename, tmpfilename)
 
         filepath_index = self.filename + ".fai"
@@ -100,7 +100,6 @@ class TestFastaFilePathIndex:
 
         # index should not be auto-generated
         assert not os.path.exists(tmpfilename + ".fai")
-        os.unlink(tmpfilename)
 
 
 class TestFastaFilePathIndexCompressed(TestFastaFilePathIndex):

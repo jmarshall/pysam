@@ -1,18 +1,11 @@
 import os
-import glob
 import gzip
-import contextlib
-import inspect
 import subprocess
-import tempfile
 import time
 from itertools import zip_longest
 from urllib.request import urlopen
 
 import pysam
-
-WORKDIR = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       "pysam_test_work"))
 
 BAM_DATADIR = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                            "pysam_data"))
@@ -25,9 +18,6 @@ CBCF_DATADIR = os.path.abspath(os.path.join(os.path.dirname(__file__),
 
 LINKDIR = os.path.abspath(os.path.join(
     os.path.dirname(__file__), "..", "linker_tests"))
-
-
-TESTS_TEMPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "tmp"))
 
 
 def force_str(s):
@@ -183,46 +173,6 @@ def dict_of_read(read, exclude=frozenset()):
             d[n] = getattr(read, n)
 
     return d
-
-
-def get_temp_filename(suffix=""):
-    caller_name = inspect.getouterframes(inspect.currentframe(), 2)[1][3]
-    try:
-        os.makedirs(TESTS_TEMPDIR)
-    except OSError:
-        pass
-
-    f = tempfile.NamedTemporaryFile(
-        prefix="pysamtests_tmp_{}_".format(caller_name),
-        suffix=suffix,
-        delete=False,
-        dir=TESTS_TEMPDIR)
-
-    f.close()
-    return f.name
-
-
-@contextlib.contextmanager
-def get_temp_context(suffix="", keep=False):
-    caller_name = inspect.getouterframes(inspect.currentframe(), 3)[1][3]
-    try:
-        os.makedirs(TESTS_TEMPDIR)
-    except OSError:
-        pass
-
-    f = tempfile.NamedTemporaryFile(
-        prefix="pysamtests_tmp_{}_".format(caller_name),
-        suffix=suffix,
-        delete=False,
-        dir=TESTS_TEMPDIR)
-
-    f.close()
-    yield f.name
-
-    if not keep:
-        # clear up any indices as well
-        for f in glob.glob(f.name + "*"):
-            os.unlink(f)
 
 
 def make_data_files(directory):

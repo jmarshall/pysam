@@ -7,7 +7,7 @@ import pytest
 import re
 
 from TestUtils import checkBinaryEqual, checkGZBinaryEqual, check_url, \
-    load_and_convert, make_data_files, TABIX_DATADIR, get_temp_filename
+    load_and_convert, make_data_files, TABIX_DATADIR
 
 
 def setUpModule():
@@ -34,8 +34,9 @@ class TestIndexing:
     filename = os.path.join(TABIX_DATADIR, "example.gtf.gz")
     filename_idx = os.path.join(TABIX_DATADIR, "example.gtf.gz.tbi")
 
-    def setup_method(self):
-        self.tmpfilename = get_temp_filename(suffix="gtf.gz")
+    @pytest.fixture(autouse=True)
+    def copy(self, tmp_path):
+        self.tmpfilename = str(tmp_path / "copy.gtf.gz")
         shutil.copyfile(self.filename, self.tmpfilename)
 
     def test_indexing_with_preset_works(self):
@@ -44,14 +45,13 @@ class TestIndexing:
         pysam.tabix_index(self.tmpfilename, preset="gff")
         assert checkGZBinaryEqual(self.tmpfilename + ".tbi", self.filename_idx)
 
-    def test_indexing_to_custom_location_works(self):
+    def test_indexing_to_custom_location_works(self, tmp_path):
         '''test indexing a file with a non-default location.'''
 
-        index_path = get_temp_filename(suffix='custom.tbi')
+        index_path = str(tmp_path / "custom.tbi")
         pysam.tabix_index(self.tmpfilename, preset="gff",
                           index=index_path, force=True)
         assert checkGZBinaryEqual(index_path, self.filename_idx)
-        os.unlink(index_path)
 
     def test_indexing_with_explict_columns_works(self):
         '''test indexing via preset.'''
@@ -74,19 +74,15 @@ class TestIndexing:
                           zerobased=False)
         assert not checkGZBinaryEqual(self.tmpfilename + ".tbi", self.filename_idx)
 
-    def teardown_method(self):
-        os.unlink(self.tmpfilename)
-        if os.path.exists(self.tmpfilename + ".tbi"):
-            os.unlink(self.tmpfilename + ".tbi")
-
 
 class TestCompression:
     filename = os.path.join(TABIX_DATADIR, "example.gtf.gz")
     filename_idx = os.path.join(TABIX_DATADIR, "example.gtf.gz.tbi")
     preset = "gff"
 
-    def setup_method(self):
-        self.tmpfilename = get_temp_filename(suffix="gtf")
+    @pytest.fixture(autouse=True)
+    def copy(self, tmp_path):
+        self.tmpfilename = str(tmp_path / "copy.gtf")
         with gzip.open(self.filename, "rb") as infile, \
                 open(self.tmpfilename, "wb") as outfile:
             outfile.write(infile.read())
@@ -112,14 +108,6 @@ class TestCompression:
         pysam.tabix_index(self.tmpfilename + ".gz", preset=self.preset)
         checkBinaryEqual(self.tmpfilename + ".gz", self.filename)
         checkBinaryEqual(self.tmpfilename + ".gz.tbi", self.filename_idx)
-
-    def teardown_method(self):
-        if os.path.exists(self.tmpfilename):
-            os.unlink(self.tmpfilename)
-        if os.path.exists(self.tmpfilename + ".gz"):
-            os.unlink(self.tmpfilename + ".gz")
-        if os.path.exists(self.tmpfilename + ".gz.tbi"):
-            os.unlink(self.tmpfilename + ".gz.tbi")
 
 
 class TestCompressionSam(TestCompression):
@@ -355,20 +343,20 @@ class TestIterators:
     parser = pysam.asTuple
     is_compressed = False
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def copy(self, tmp_path):
         self.tabix = pysam.TabixFile(self.filename)
         self.compare = load_and_convert(self.filename)
-        self.tmpfilename_uncompressed = 'tmp_TestIterators'
+        self.tmpfilename_uncompressed = str(tmp_path / "TestIterators")
         with gzip.open(self.filename, "rb") as infile, \
                 open(self.tmpfilename_uncompressed, "wb") as outfile:
             outfile.write(infile.read())
 
-    def teardown_method(self):
+        yield
+
         self.tabix.close()
-        os.unlink(self.tmpfilename_uncompressed)
 
     def open(self):
-
         if self.is_compressed:
             infile = gzip.open(self.filename)
         else:
@@ -376,7 +364,6 @@ class TestIterators:
         return infile
 
     def testIteration(self):
-
         with self.open() as infile:
             for x, r in enumerate(self.iterator(infile, self.parser())):
                 assert self.compare[x] == list(r)
@@ -508,15 +495,11 @@ class TestVCF:
 
     filename = os.path.join(TABIX_DATADIR, "example.vcf40")
 
-    def setup_method(self):
-        self.tmpfilename = get_temp_filename(suffix="vcf")
+    @pytest.fixture(autouse=True)
+    def copy_and_index(self, tmp_path):
+        self.tmpfilename = str(tmp_path / "copy.vcf")
         shutil.copyfile(self.filename, self.tmpfilename)
         pysam.tabix_index(self.tmpfilename, preset="vcf")
-
-    def teardown_method(self):
-        os.unlink(self.tmpfilename + ".gz")
-        if os.path.exists(self.tmpfilename + ".gz.tbi"):
-            os.unlink(self.tmpfilename + ".gz.tbi")
 
 
 class TestUnicode:
@@ -525,18 +508,13 @@ class TestUnicode:
 
     filename = os.path.join(TABIX_DATADIR, "example_unicode.vcf")
 
-    def setup_method(self):
-        self.tmpfilename = get_temp_filename(suffix="vcf")
+    @pytest.fixture(autouse=True)
+    def copy_and_index(self, tmp_path):
+        self.tmpfilename = str(tmp_path / "copy.vcf")
         shutil.copyfile(self.filename, self.tmpfilename)
         pysam.tabix_index(self.tmpfilename, preset="vcf")
 
-    def teardown_method(self):
-        os.unlink(self.tmpfilename + ".gz")
-        if os.path.exists(self.tmpfilename + ".gz.tbi"):
-            os.unlink(self.tmpfilename + ".gz.tbi")
-
     def testFromTabix(self):
-
         # use ascii encoding - should raise error
         with pysam.TabixFile(
                 self.tmpfilename + ".gz", encoding="ascii") as t:
@@ -563,18 +541,16 @@ class TestVCFFromTabix(TestVCF):
                "ref", "alt", "qual",
                "filter", "info", "format")
 
-    def setup_method(self):
-        super().setup_method()
-
+    @pytest.fixture(autouse=True)
+    def tabix_and_load(self):
         self.tabix = pysam.TabixFile(self.tmpfilename + ".gz")
         self.compare = load_and_convert(self.filename)
 
-    def teardown_method(self):
+        yield
+
         self.tabix.close()
-        super().teardown_method()
 
     def testRead(self):
-
         ncolumns = len(self.columns)
 
         for x, r in enumerate(self.tabix.fetch(parser=pysam.asVCF())):
@@ -598,7 +574,6 @@ class TestVCFFromTabix(TestVCF):
             assert "\t".join(map(str, c)) == str(r)
 
     def testWrite(self):
-
         ncolumns = len(self.columns)
 
         for x, r in enumerate(self.tabix.fetch(parser=pysam.asVCF())):
@@ -666,14 +641,13 @@ class TestVCFFromVCF(TestVCF):
     missing_value = "."
     missing_quality = -1
 
-    def setup_method(self):
-        super().setup_method()
-
+    @pytest.fixture(autouse=True)
+    def vcf_and_load(self):
         self.vcf = pysam.VCF()
         self.compare = load_and_convert(self.filename, encode=False)
 
-    def teardown_method(self):
-        super().teardown_method()
+        yield
+
         self.vcf.close()
 
     def open_vcf(self, fn):
@@ -904,14 +878,12 @@ class TestVCFFromVariantFile(TestVCFFromVCF):
         return r, comp
 
     def setup_method(self):
-        TestVCF.setup_method(self)
         self.compare = load_and_convert(self.filename, encode=False)
 
     def teardown_method(self):
         if self.vcf:
             self.vcf.close()
         self.vcf = None
-        TestVCF.teardown_method(self)
 
     def get_iterator(self):
         self.vcf = pysam.VariantFile(self.filename)
@@ -994,47 +966,43 @@ class TestRemoteFileHTTPWithHeader(TestRemoteFileHTTP):
 class TestIndexArgument:
 
     filename_src = os.path.join(TABIX_DATADIR, "example.vcf.gz")
-    filename_dst = "tmp_example.vcf.gz"
     index_src = os.path.join(TABIX_DATADIR, "example.vcf.gz.tbi")
-    index_dst = "tmp_index_example.vcf.gz.tbi"
-    index_dst_dat = "tmp_index_example.vcf.gz.tbi.dat"
-    preset = "vcf"
 
-    def testFetchAll(self):
-        shutil.copyfile(self.filename_src, self.filename_dst)
-        shutil.copyfile(self.index_src, self.index_dst)
+    def testFetchAll(self, tmp_path):
+        filename_dst = str(tmp_path / "example.vcf.gz")
+        index_dst    = str(tmp_path / "example.vcf.gz.tbi")
+
+        shutil.copyfile(self.filename_src, filename_dst)
+        shutil.copyfile(self.index_src, index_dst)
 
         with pysam.TabixFile(
                 self.filename_src, "r", index=self.index_src) as same_basename_file:
             same_basename_results = list(same_basename_file.fetch())
 
         with pysam.TabixFile(
-                self.filename_dst, "r", index=self.index_dst) as diff_index_file:
+                filename_dst, "r", index=index_dst) as diff_index_file:
             diff_index_result = list(diff_index_file.fetch())
 
         assert len(same_basename_results) == len(diff_index_result)
         for x, y in zip(same_basename_results, diff_index_result):
             assert x == y
 
-        os.unlink(self.filename_dst)
-        os.unlink(self.index_dst)
+    def testLoadIndexWithoutTbiExtension(self, tmp_path):
+        filename_dst  = str(tmp_path / "example.vcf.gz")
+        index_dst_dat = str(tmp_path / "example.vcf.gz.tbi.dat")
 
-    def testLoadIndexWithoutTbiExtension(self):
-        shutil.copyfile(self.filename_src, self.filename_dst)
-        shutil.copyfile(self.index_src, self.index_dst_dat)
+        shutil.copyfile(self.filename_src, filename_dst)
+        shutil.copyfile(self.index_src, index_dst_dat)
 
         with pysam.TabixFile(self.filename_src, "r", index=self.index_src) as same_basename_file:
             same_basename_results = list(same_basename_file.fetch())
 
-        with pysam.TabixFile(self.filename_dst, "r", index=self.index_dst_dat) as diff_index_file:
+        with pysam.TabixFile(filename_dst, "r", index=index_dst_dat) as diff_index_file:
             diff_index_result = list(diff_index_file.fetch())
 
         assert len(same_basename_results) == len(diff_index_result)
         for x, y in zip(same_basename_results, diff_index_result):
             assert x == y
-
-        os.unlink(self.filename_dst)
-        os.unlink(self.index_dst_dat)
 
 
 def _TestMultipleIteratorsHelper(filename, multiple_iterators):

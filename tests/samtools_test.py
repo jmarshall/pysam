@@ -11,7 +11,7 @@ import pysam
 import pysam.samtools
 import pysam.bcftools
 from TestUtils import checkBinaryEqual, slurp_file, \
-    check_samtools_view_equal, get_temp_filename, force_bytes, WORKDIR, \
+    check_samtools_view_equal, force_bytes, \
     make_data_files, BAM_DATADIR
 
 
@@ -132,7 +132,8 @@ class TestSamtools:
                  pysam.__samtools_version__,
                  samtools_version))
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, tmp_path):
         '''setup tests.
 
         For setup, all commands will be run before the first test is
@@ -142,10 +143,7 @@ class TestSamtools:
         '''
         self.check_version()
 
-        self.workdir = os.path.join(WORKDIR, "samtools_test")
-
-        if not os.path.exists(self.workdir):
-            os.makedirs(self.workdir)
+        self.workdir = str(tmp_path)
 
         for f in self.requisites:
             shutil.copy(os.path.join(BAM_DATADIR, f),
@@ -154,7 +152,13 @@ class TestSamtools:
         self.savedir = os.getcwd()
         os.chdir(self.workdir)
 
-        return
+        yield
+
+        # Unlike most other tests, do remove these voluminous output files
+        for f in glob.glob(os.path.join(self.workdir, "*")):
+            os.unlink(f)
+
+        os.chdir(self.savedir)
 
     def get_command(self, statement, map_to_internal=True):
         """return samtools command from statement"""
@@ -255,11 +259,6 @@ class TestSamtools:
             expected = r"Usage:\s+{} {}".format(self.executable, command)
             assert re.search(expected, usage_msg) is not None
 
-    def teardown_method(self):
-        if os.path.exists(self.workdir):
-            shutil.rmtree(self.workdir)
-        os.chdir(self.savedir)
-
 
 class TestEmptyIndex:
     def testEmptyIndex(self):
@@ -319,8 +318,8 @@ class TestStdout:
         retvals = pysam.idxstats(
             os.path.join(BAM_DATADIR, "ex1.bam"))
 
-    def testSaveStdout(self):
-        outfile = get_temp_filename(suffix=".tsv")
+    def testSaveStdout(self, tmp_path):
+        outfile = str(tmp_path / "flagstat.tsv")
         r = pysam.samtools.flagstat(
             os.path.join(BAM_DATADIR, "ex1.bam"),
             save_stdout=outfile)

@@ -19,8 +19,7 @@ from functools import partial
 import pysam
 import pysam.samtools
 from TestUtils import checkBinaryEqual, checkGZBinaryEqual, check_url, \
-    check_samtools_view_equal, dict_of_read, force_str, \
-    get_temp_filename, make_data_files, BAM_DATADIR
+    check_samtools_view_equal, dict_of_read, force_str, make_data_files, BAM_DATADIR
 
 
 def setUpModule():
@@ -340,90 +339,89 @@ class TestIO:
             outfile.close()
 
         assert checkf(os.path.join(BAM_DATADIR, reference_filename), output_filename)
-        os.unlink(output_filename)
 
-    def testSAM2SAM(self):
+    def testSAM2SAM(self, tmp_path):
         self.checkEcho("ex2.sam",
                        "ex2.sam",
-                       "tmp_ex2.sam",
+                       str(tmp_path / "tmp_ex2.sam"),
                        "r", "wh")
 
-    def testSAM2SAMWithoutHeader(self):
+    def testSAM2SAMWithoutHeader(self, tmp_path):
         self.checkEcho("ex2.sam",
                        "ex1.sam",
-                       "tmp_ex2.sam",
+                       str(tmp_path / "tmp_ex2.sam"),
                        "r", "w",
                        add_sam_header=False)
 
-    def testBAM2BAM(self):
+    def testBAM2BAM(self, tmp_path):
         self.checkEcho("ex2.bam",
                        "ex2.bam",
-                       "tmp_ex2.bam",
+                       str(tmp_path / "tmp_ex2.bam"),
                        "rb", "wb",
                        checkf=checkGZBinaryEqual)
 
-    def testCRAM2CRAM(self):
+    def testCRAM2CRAM(self, tmp_path):
         # in some systems different reference sequence paths might be
         # embedded in the CRAM files which will result in different headers
         # see #542
         self.checkEcho("ex2.cram",
                        "ex2.cram",
-                       "tmp_ex2.cram",
+                       str(tmp_path / "tmp_ex2.cram"),
                        "rc", "wc",
                        sequence_filename=os.path.join(BAM_DATADIR, "ex1.fa"),
                        checkf=partial(
                            check_samtools_view_equal,
                            without_header=True))
 
-    def testSAM2BAM(self):
+    def testSAM2BAM(self, tmp_path):
         self.checkEcho("ex2.sam",
                        "ex2.bam",
-                       "tmp_ex2.bam",
+                       str(tmp_path / "tmp_ex2.bam"),
                        "r", "wb",
                        checkf=checkGZBinaryEqual)
 
-    def testBAM2SAM(self):
+    def testBAM2SAM(self, tmp_path):
         self.checkEcho("ex2.bam",
                        "ex2.sam",
-                       "tmp_ex2.sam",
+                       str(tmp_path / "tmp_ex2.sam"),
                        "rb", "wh")
 
-    def testBAM2CRAM(self):
+    def testBAM2CRAM(self, tmp_path):
         # ignore header (md5 sum)
         self.checkEcho("ex2.bam",
                        "ex2.cram",
-                       "tmp_ex2.cram",
+                       str(tmp_path / "tmp_ex2.cram"),
                        "rb", "wc",
                        sequence_filename=os.path.join(BAM_DATADIR, "ex1.fa"),
                        checkf=partial(
                            check_samtools_view_equal,
                            without_header=True))
 
-    def testCRAM2BAM(self):
+    def testCRAM2BAM(self, tmp_path):
         # ignore header (md5 sum)
         self.checkEcho("ex2.cram",
                        "ex2.bam",
-                       "tmp_ex2.bam",
+                       str(tmp_path / "tmp_ex2.bam"),
                        "rc", "wb",
                        sequence_filename=os.path.join(BAM_DATADIR, "ex1.fa"),
                        checkf=partial(
                            check_samtools_view_equal,
                            without_header=True))
 
-    def testSAM2CRAM(self):
+    def testSAM2CRAM(self, tmp_path):
         self.checkEcho("ex2.sam",
                        "ex2.cram",
-                       "tmp_ex2.cram",
+                       str(tmp_path / "tmp_ex2.cram"),
                        "r", "wc",
                        sequence_filename=os.path.join(BAM_DATADIR, "ex1.fa"),
                        checkf=partial(
                            check_samtools_view_equal,
                            without_header=True))
 
-    def testCRAM2SAM(self):
+    def testCRAM2SAM(self, tmp_path):
         self.checkEcho("ex2.cram",
                        "ex2.sam",
-                       "tmp_ex2.sam",
+                       str(tmp_path / "tmp_ex2.sam"),
                        "rc", "wh",
                        sequence_filename=os.path.join(BAM_DATADIR, "ex1.fa"),
                        checkf=partial(
@@ -433,9 +431,9 @@ class TestIO:
     # Disabled - should work, files are not binary equal, but are
     # non-binary equal:
     # diff <(samtools view pysam_ex1.bam) <(samtools view pysam_data/ex1.bam)
-    # def testReadWriteBamWithTargetNames(self):
+    # def testReadWriteBamWithTargetNames(self, tmp_path):
     #     input_filename = "ex1.bam"
-    #     output_filename = "pysam_ex1.bam"
+    #     output_filename = str(tmp_path / "pysam_ex1.bam")
     #     reference_filename = "ex1.bam"
 
     #     self.checkEcho(input_filename, reference_filename, output_filename,
@@ -530,7 +528,7 @@ class TestIO:
         with pytest.raises(ValueError):
             samfile.fetch('chr1', 100, 120)
 
-    def testFetchFromClosedFileObject(self):
+    def testFetchFromClosedFileObject(self, tmp_path):
         f = open(os.path.join(BAM_DATADIR, "ex1.bam"))
         samfile = pysam.AlignmentFile(f, "rb")
         f.close()
@@ -538,7 +536,7 @@ class TestIO:
         # access to Samfile still works
         self.checkEcho("ex1.bam",
                        "ex1.bam",
-                       "tmp_ex1.bam",
+                       str(tmp_path / "tmp_ex1.bam"),
                        "rb", "wb",
                        checkf=checkGZBinaryEqual)
 
@@ -602,22 +600,21 @@ class TestIO:
     #                             check_sq=False)
     #     with pytest.raises(NotImplementedError):  iter(samfile)
 
-    def testReadingFromFileWithoutIndex(self):
+    def testReadingFromFileWithoutIndex(self, tmp_path):
         '''read from bam file without index.'''
 
-        dest = get_temp_filename("tmp_ex2.bam")
+        dest = tmp_path / "copy_ex2.bam"
         shutil.copyfile(os.path.join(BAM_DATADIR, "ex2.bam"), dest)
         samfile = pysam.AlignmentFile(dest, "rb")
         with pytest.raises(ValueError): samfile.fetch()
         assert len(list(samfile.fetch(until_eof=True))) == 3270
-        os.unlink(dest)
 
-    # def testReadingUniversalFileMode(self):
+    # def testReadingUniversalFileMode(self, tmp_path):
     #     '''read from samfile without header.
     #     '''
 
     #     input_filename = "ex2.sam"
-    #     output_filename = "pysam_ex2.sam"
+    #     output_filename = str(tmp_path / "pysam_ex2.sam")
     #     reference_filename = "ex1.sam"
 
     #     self.checkEcho(input_filename,
@@ -635,21 +632,20 @@ class TestIO:
         assert len(l100) == 100
         assert list(map(str, l10)) == list(map(str, l100[:10]))
 
-    def testWriteUncompressedBAMFile(self):
+    def testWriteUncompressedBAMFile(self, tmp_path):
         '''read from uncompressed BAM file, see issue #43'''
 
         input_filename = "ex2.sam"
-        output_filename = "pysam_uncompressed.bam"
         reference_filename = "uncompressed.bam"
 
         self.checkEcho(input_filename,
                        reference_filename,
-                       output_filename,
+                       str(tmp_path / "uncompressed1.bam"),
                        "r", "wb0")
 
         self.checkEcho(input_filename,
                        reference_filename,
-                       output_filename,
+                       str(tmp_path / "uncompressed2.bam"),
                        "r", "wbu")
 
     def testEmptyBAM(self):
@@ -912,10 +908,10 @@ class TestContextManager:
 
 
 class TestMultiThread:
-    def testSingleThreadEqualsMultithread(self):
+    def testSingleThreadEqualsMultithread(self, tmp_path):
         input_bam = os.path.join(BAM_DATADIR, 'ex1.bam')
-        single_thread_out = get_temp_filename("tmp_single.bam")
-        multi_thread_out = get_temp_filename("tmp_multi.bam")
+        single_thread_out = tmp_path / "single.bam"
+        multi_thread_out = tmp_path / "multi.bam"
         with pysam.AlignmentFile(input_bam, 'rb') as samfile:
             reads = [r for r in samfile]
             with pysam.AlignmentFile(single_thread_out,
@@ -1093,21 +1089,19 @@ class TestDeNovoConstruction:
         self.reads = (a, b)
 
     # TODO
-    # def testSAMWholeFile(self):
-
-    #     tmpfilename = "tmp_%i.sam" % id(self)
-
+    # def testSAMWholeFile(self, tmp_path):
+    #
+    #     tmpfilename = str(tmp_path / f"tmp_{id(self)}.sam")
+    #
     #     outfile = pysam.AlignmentFile(tmpfilename,
     #                             "wh",
     #                             header=self.header)
-
+    #
     #     for x in self.reads:
     #         outfile.write(x)
     #     outfile.close()
     #     assert checkBinaryEqual(tmpfilename, self.samfile),
     #                     "mismatch when construction SAM file, see %s %s" % (tmpfilename, self.samfile))
-
-    #     os.unlink(tmpfilename)
 
     def test_pass_if_reads_binary_equal(self):
         '''check if individual reads are binary equal.'''
@@ -1128,8 +1122,8 @@ class TestDeNovoConstruction:
     #         assert dict_of_read(other) == dict_of_read(denovo)
     #         assert other.compare(denovo) == 0
 
-    def testBAMWholeFile(self):
-        tmpfilename = "tmp_%i.bam" % id(self)
+    def testBAMWholeFile(self, tmp_path):
+        tmpfilename = str(tmp_path / "out.bam")
 
         outfile = pysam.AlignmentFile(tmpfilename, "wb", header=self.header)
 
@@ -1138,7 +1132,6 @@ class TestDeNovoConstruction:
         outfile.close()
 
         assert checkGZBinaryEqual(tmpfilename, self.bamfile)
-        os.unlink(tmpfilename)
 
 
 class TestEmptyHeader:
@@ -1163,14 +1156,14 @@ class TestEmptyHeader:
 class TestMismatchingHeader:
     '''see issue 716.'''
 
-    def testMismatchingHeader(self):
+    def testMismatchingHeader(self, tmp_path):
         # Note: no chr2
         header = {
             'SQ': [{'SN': 'chr1', 'LN': 1575}],
             'PG': [{'ID': 'bwa', 'PN': 'bwa', 'VN': '0.7.15', 'CL': 'bwa mem xx -'}],
         }
 
-        dest = get_temp_filename("tmp_ex3.bam")
+        dest = tmp_path / "write_ex3.bam"
         with pysam.AlignmentFile(os.path.join(BAM_DATADIR, 'ex3.bam')) as inf:
             with pysam.AlignmentFile(dest, mode="wb", header=header) as outf:
                 for read in inf:
@@ -1179,7 +1172,6 @@ class TestMismatchingHeader:
                     else:
                         with pytest.raises(ValueError):
                             outf.write(read)
-        os.unlink(dest)
 
 
 class TestHeaderWithProgramOptions:
@@ -1472,9 +1464,10 @@ class TestCountCoverage:
     samfilename = os.path.join(BAM_DATADIR, "ex1.bam")
     fastafilename = os.path.join(BAM_DATADIR, "ex1.fa")
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def initfiles(self, tmp_path):
         self.fastafile = pysam.Fastafile(self.fastafilename)
-        self.tmpfilename = get_temp_filename(".bam")
+        self.tmpfilename = str(tmp_path / "from_ex1.bam")
 
         with pysam.AlignmentFile(self.samfilename) as inf:
             with pysam.AlignmentFile(
@@ -1493,10 +1486,9 @@ class TestCountCoverage:
                     outf.write(read)
         pysam.samtools.index(self.tmpfilename)
 
-    def teardown_method(self):
+        yield
+
         self.fastafile.close()
-        os.unlink(self.tmpfilename)
-        os.unlink(self.tmpfilename + ".bai")
 
     def count_coverage_python(self,
                               bam, chrom, start, stop,
@@ -1975,8 +1967,7 @@ class TestSanityCheckingBAM:
 
     mode = "wb"
 
-    def check_write(self, read):
-        fn = "tmp_test_sanity_check.bam"
+    def check_write(self, fn, read):
         names = ["chr1"]
         lengths = [10000]
         with pysam.AlignmentFile(
@@ -1986,12 +1977,9 @@ class TestSanityCheckingBAM:
                 reference_lengths=lengths) as outf:
             outf.write(read)
 
-        if os.path.exists(fn):
-            os.unlink(fn)
-
-    def test_empty_read_gives_value_error(self):
+    def test_empty_read_gives_value_error(self, tmp_path):
         read = pysam.AlignedSegment()
-        self.check_write(read)
+        self.check_write(tmp_path / "sanity_check.bam", read)
 
 
 class TestLargeCigar:
@@ -2020,9 +2008,9 @@ class TestLargeCigar:
         a.query_qualities = pysam.qualitystring_to_array("1") * (l + 1)
         return a
 
-    def check_read(self, read, mode="bam"):
-        fn = get_temp_filename("tmp_largecigar.{}".format(mode))
-        fn_reference = get_temp_filename("tmp_largecigar.fa")
+    def check_read(self, read, temp, mode="bam"):
+        fn = temp / f"tmp_largecigar.{mode}"
+        fn_reference = temp / "tmp_largecigar.fa"
 
         nrows = int(self.read_length * 2 / 80)
 
@@ -2051,19 +2039,16 @@ class TestLargeCigar:
         else:
             assert read == ref_read
 
-        os.unlink(fn)
-        os.unlink(fn_reference)
-
-    def test_reading_writing_sam(self):
+    def test_reading_writing_sam(self, tmp_path):
         read = self.build_read()
-        self.check_read(read, mode="sam")
+        self.check_read(read, tmp_path, mode="sam")
 
-    def test_reading_writing_bam(self):
+    def test_reading_writing_bam(self, tmp_path):
         read = self.build_read()
-        self.check_read(read, mode="bam")
+        self.check_read(read, tmp_path, mode="bam")
 
     @pytest.mark.skip(reason="fails on linux - https issue?")
-    def test_reading_writing_cram(self):
+    def test_reading_writing_cram(self, tmp_path):
         # The following test fails with htslib 1.9, but worked with previous versions.
         # Error is:
         # [W::find_file_url] Failed to open reference "https://www.ebi.ac.uk/ena/cram/md5/ac9fac7c3e9c476f74f1d0e47abc8be2": Input/output error
@@ -2071,4 +2056,4 @@ class TestLargeCigar:
         # Could be a conda configuration issue, see
         # https://github.com/bioconda/bioconda-recipes/issues/9056
         read = self.build_read()
-        self.check_read(read, mode="cram")
+        self.check_read(read, tmp_path, mode="cram")

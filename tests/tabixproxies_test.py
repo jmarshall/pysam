@@ -107,9 +107,9 @@ class TestParser:
                     for cc in range(c + 1, len(r)):
                         assert self.compare[x][c:cc] == r[c:cc]
 
-    def testIteratorUncompressed(self):
+    def testIteratorUncompressed(self, tmp_path):
         '''test iteration from uncompressed file.'''
-        tmpfilename = 'tmp_testIteratorUncompressed'
+        tmpfilename = str(tmp_path / "IteratorUncompressed")
         with gzip.open(self.filename, "rb") as infile, \
                 open(tmpfilename, "wb") as outfile:
             outfile.write(infile.read())
@@ -128,8 +128,6 @@ class TestParser:
                 for c in range(0, len(r) - 1):
                     for cc in range(c + 1, len(r)):
                         assert self.compare[x][c:cc] == r[c:cc]
-
-        os.unlink(tmpfilename)
 
     def testCopy(self):
         a = next(self.tabix.fetch(parser=pysam.asTuple()))

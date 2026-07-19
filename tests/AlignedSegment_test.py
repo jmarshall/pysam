@@ -12,8 +12,6 @@ from TestUtils import (
     dict_of_read,
     make_data_files,
     BAM_DATADIR,
-    get_temp_filename,
-    get_temp_context,
 )
 
 
@@ -274,42 +272,43 @@ class TestAlignedSegment(ReadTest):
         assert a.query_sequence is None
         assert a.query_alignment_sequence is None
 
-    def testUpdateQual(self):
+    def testUpdateQual(self, tmp_path):
         """Ensure SEQ and QUAL updates leading to absent QUAL set all bytes to 0xff"""
 
         a = self.build_read()
-        with get_temp_context("absent_qual.bam") as fname:
-            with pysam.AlignmentFile(fname, "wb", header=a.header) as outf:
-                a.query_sequence = "ATGC"
-                outf.write(a)
+        fname = tmp_path / "absent_qual.bam"
 
-                a.query_sequence = "ATGCATGCATGC"
-                outf.write(a)
+        with pysam.AlignmentFile(fname, "wb", header=a.header) as outf:
+            a.query_sequence = "ATGC"
+            outf.write(a)
 
-                a.query_sequence = "ATGCATGC"
-                a.query_qualities = pysam.qualitystring_to_array("<<<<<<<<")
-                a.query_qualities = None
-                outf.write(a)
+            a.query_sequence = "ATGCATGCATGC"
+            outf.write(a)
 
-            with pysam.BGZFile(fname) as f:
-                # Skip BAM header
-                (l_text,) = struct.unpack("<4xL", f.read(8))
-                f.read(l_text)
-                (n_ref,) = struct.unpack("<L", f.read(4))
-                for i in range(n_ref):
-                    (l_name,) = struct.unpack("<L", f.read(4))
-                    f.read(l_name + 4)
+            a.query_sequence = "ATGCATGC"
+            a.query_qualities = pysam.qualitystring_to_array("<<<<<<<<")
+            a.query_qualities = None
+            outf.write(a)
 
-                # Read each BAM record and check its qual bytes
-                while True:
-                    core = f.read(36)
-                    if len(core) != 36: break
+        with pysam.BGZFile(fname) as f:
+            # Skip BAM header
+            (l_text,) = struct.unpack("<4xL", f.read(8))
+            f.read(l_text)
+            (n_ref,) = struct.unpack("<L", f.read(4))
+            for i in range(n_ref):
+                (l_name,) = struct.unpack("<L", f.read(4))
+                f.read(l_name + 4)
 
-                    (block_size, l_read_name, n_cigar_op, l_seq) = struct.unpack("<L8xB3xH2xL12x", core)
-                    data = f.read(block_size - 32)
-                    qual = data[l_read_name + 4*n_cigar_op + ((l_seq+1) // 2):]
+            # Read each BAM record and check its qual bytes
+            while True:
+                core = f.read(36)
+                if len(core) != 36: break
 
-                    assert qual == b'\xff' * l_seq
+                (block_size, l_read_name, n_cigar_op, l_seq) = struct.unpack("<L8xB3xH2xL12x", core)
+                data = f.read(block_size - 32)
+                qual = data[l_read_name + 4*n_cigar_op + ((l_seq+1) // 2):]
+
+                assert qual == b'\xff' * l_seq
 
     def testClearQual(self):
         a = pysam.AlignedSegment()
@@ -1567,18 +1566,16 @@ class TestTags(ReadTest):
         assert aligned_read.opt("XD") == x
         # print (aligned_read.tags)
 
-    def testNegativeIntegersWrittenToFile(self):
+    def testNegativeIntegersWrittenToFile(self, tmp_path):
         r = self.build_read()
         x = -2
         r.tags = [("XD", x)]
-        with get_temp_context("negative_integers.bam") as fn:
-            with pysam.AlignmentFile(
-                fn, "wb", referencenames=("chr1",), referencelengths=(1000,)
-            ) as outf:
-                outf.write(r)
-            with pysam.AlignmentFile(fn) as inf:
-                r = next(inf)
-            assert r.tags == [("XD", x)]
+        fn = tmp_path / "negative_integers.bam"
+        with pysam.AlignmentFile(fn, "wb", referencenames=("chr1",), referencelengths=(1000,)) as outf:
+            outf.write(r)
+        with pysam.AlignmentFile(fn) as inf:
+            r = next(inf)
+        assert r.tags == [("XD", x)]
 
 
 class TestCopy(ReadTest):
@@ -1754,8 +1751,8 @@ class TestBuildingReadsWithoutHeader:
         read = self.build_read()
         with pytest.raises(ValueError): read.reference_name = "chr2"
 
-    def test_read_can_be_written_to_file(self):
-        tmpfilename = get_temp_filename(".bam")
+    def test_read_can_be_written_to_file(self, tmp_path):
+        tmpfilename = str(tmp_path / "file.bam")
         with pysam.AlignmentFile(
             tmpfilename,
             "wb",
@@ -1769,7 +1766,6 @@ class TestBuildingReadsWithoutHeader:
         stdout = pysam.samtools.view(tmpfilename)
         chromosome = stdout.split("\t")[2]
         assert chromosome == "chr3"
-        os.unlink(tmpfilename)
 
 
 class TestForwardStrandValues(ReadTest):

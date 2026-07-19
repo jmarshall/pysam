@@ -4,7 +4,6 @@
 
 # test directory
 tests/pysam/
-tests/tmp*
 tests/*.bam
 tests/*.bai
 tests/*.gz

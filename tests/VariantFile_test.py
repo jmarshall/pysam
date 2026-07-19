@@ -8,7 +8,7 @@ import shutil
 import gzip
 from pathlib import Path
 
-from TestUtils import get_temp_filename, load_and_convert, make_data_files, slurp_file, CBCF_DATADIR, get_temp_context
+from TestUtils import load_and_convert, make_data_files, slurp_file, CBCF_DATADIR
 
 
 def setUpModule():
@@ -113,42 +113,33 @@ class TestOpening:
             pysam.VariantFile("missing_file.vcf.gz")
 
     def testEmptyFileVCF(self):
-        with get_temp_context("tmp_testEmptyFile.vcf") as fn:
-            with open(fn, "w"):
-                pass
-            with pytest.raises(ValueError):
-                pysam.VariantFile(fn)
+        with pytest.raises(ValueError):
+            pysam.VariantFile(os.path.join(CBCF_DATADIR, "example_empty.vcf"))
 
     def testEmptyFileVCFFromPath(self):
-        with get_temp_context("tmp_testEmptyFile.vcf") as fn:
-            with open(fn, "w"):
-                pass
-            with pytest.raises(ValueError):
-                pysam.VariantFile(Path(fn))
+        with pytest.raises(ValueError):
+            pysam.VariantFile(Path(CBCF_DATADIR) / "example_empty.vcf")
 
-    def testEmptyFileVCFGZWithIndex(self):
-        with get_temp_context("tmp_testEmptyFile.vcf") as fn:
-            with open(fn, "w"):
-                pass
-            # tabix_index will automatically compress
-            pysam.tabix_index(fn,
-                              preset="vcf",
-                              force=True)
+    def testEmptyFileVCFGZWithIndex(self, tmp_path):
+        fpath = tmp_path / "empty.vcf"
+        fpath.write_text("")
+        fn = str(fpath)
 
-            with pytest.raises(ValueError):
-                pysam.VariantFile(fn + ".gz")
+        # tabix_index will automatically compress
+        pysam.tabix_index(fn, preset="vcf", force=True)
 
-    def testEmptyFileVCFGZWithoutIndex(self):
-        with get_temp_context("tmp_testEmptyFileWithoutIndex.vcf") as fn:
-            with open(fn, "w"):
-                pass
+        with pytest.raises(ValueError):
+            pysam.VariantFile(fn + ".gz")
 
-            pysam.tabix_compress(fn,
-                                 fn + ".gz",
-                                 force=True)
+    def testEmptyFileVCFGZWithoutIndex(self, tmp_path):
+        fpath = tmp_path / "empty.vcf"
+        fpath.write_text("")
+        fn = str(fpath)
 
-            with pytest.raises(ValueError):
-                pysam.VariantFile(fn + ".gz")
+        pysam.tabix_compress(fn, fn + ".gz", force=True)
+
+        with pytest.raises(ValueError):
+            pysam.VariantFile(fn + ".gz")
 
     def testEmptyFileVCFOnlyHeader(self):
         with pysam.VariantFile(os.path.join(
@@ -199,65 +190,65 @@ class TestIndexFormatsVCF:
     vcf_filename = os.path.join(CBCF_DATADIR, "example_vcf40.vcf")
     bcf_filename = os.path.join(CBCF_DATADIR, "example_vcf40.bcf")
 
-    def test_vcf_with_tbi_index(self):
-        with get_temp_context("tmp_fn.vcf") as fn:
-            shutil.copyfile(self.vcf_filename, fn)
-            pysam.tabix_index(fn, preset="vcf", force=True)
-            assert os.path.exists(fn + ".gz" + ".tbi")
-            assert read_index_header(fn + ".gz.tbi") == b"TBI\1"
-            assert not os.path.exists(fn + ".gz" + ".csi")
+    def test_vcf_with_tbi_index(self, tmp_path):
+        fn = str(tmp_path / "copy.vcf")
+        shutil.copyfile(self.vcf_filename, fn)
+        pysam.tabix_index(fn, preset="vcf", force=True)
+        assert os.path.exists(fn + ".gz" + ".tbi")
+        assert read_index_header(fn + ".gz.tbi") == b"TBI\1"
+        assert not os.path.exists(fn + ".gz" + ".csi")
 
-            with pysam.VariantFile(fn + ".gz") as inf:
-                assert len(list(inf.fetch("20"))) == 3
+        with pysam.VariantFile(fn + ".gz") as inf:
+            assert len(list(inf.fetch("20"))) == 3
 
-    def test_vcf_with_csi_index(self):
-        with get_temp_context("tmp_fn.vcf") as fn:
-            shutil.copyfile(self.vcf_filename, fn)
+    def test_vcf_with_csi_index(self, tmp_path):
+        fn = str(tmp_path / "copy.vcf")
+        shutil.copyfile(self.vcf_filename, fn)
 
-            pysam.tabix_index(fn, preset="vcf", force=True, csi=True)
-            assert os.path.exists(fn + ".gz" + ".csi")
-            assert read_index_header(fn + ".gz.csi") == b"CSI\1"
-            assert not os.path.exists(fn + ".gz" + ".tbi")
+        pysam.tabix_index(fn, preset="vcf", force=True, csi=True)
+        assert os.path.exists(fn + ".gz" + ".csi")
+        assert read_index_header(fn + ".gz.csi") == b"CSI\1"
+        assert not os.path.exists(fn + ".gz" + ".tbi")
 
-            with pysam.VariantFile(fn + ".gz") as inf:
-                assert len(list(inf.fetch("20"))) == 3
+        with pysam.VariantFile(fn + ".gz") as inf:
+            assert len(list(inf.fetch("20"))) == 3
 
-    def test_bcf_with_prebuilt_csi(self):
-        with get_temp_context("tmp_fn.bcf") as fn:
-            shutil.copyfile(self.bcf_filename, fn)
-            shutil.copyfile(self.bcf_filename + ".csi", fn + ".csi")
+    def test_bcf_with_prebuilt_csi(self, tmp_path):
+        fn = str(tmp_path / "copy.bcf")
+        shutil.copyfile(self.bcf_filename, fn)
+        shutil.copyfile(self.bcf_filename + ".csi", fn + ".csi")
 
-            assert os.path.exists(fn + ".csi")
-            assert read_index_header(fn + ".csi") == b"CSI\1"
-            assert not os.path.exists(fn + ".tbi")
+        assert os.path.exists(fn + ".csi")
+        assert read_index_header(fn + ".csi") == b"CSI\1"
+        assert not os.path.exists(fn + ".tbi")
 
-            with pysam.VariantFile(fn) as inf:
-                assert len(list(inf.fetch("20"))) == 3
+        with pysam.VariantFile(fn) as inf:
+            assert len(list(inf.fetch("20"))) == 3
 
-    def test_bcf_with_tbi_index_will_produce_csi(self):
-        with get_temp_context("tmp_fn.bcf") as fn:
-            shutil.copyfile(self.bcf_filename, fn)
+    def test_bcf_with_tbi_index_will_produce_csi(self, tmp_path):
+        fn = str(tmp_path / "copy.bcf")
+        shutil.copyfile(self.bcf_filename, fn)
 
-            pysam.tabix_index(fn, preset="bcf", force=True, csi=False)
-            assert os.path.exists(fn + ".csi")
-            assert read_index_header(fn + ".csi") == b"CSI\1"
-            assert not os.path.exists(fn + ".tbi")
+        pysam.tabix_index(fn, preset="bcf", force=True, csi=False)
+        assert os.path.exists(fn + ".csi")
+        assert read_index_header(fn + ".csi") == b"CSI\1"
+        assert not os.path.exists(fn + ".tbi")
 
-            with pysam.VariantFile(fn) as inf:
-                assert len(list(inf.fetch("20"))) == 3
+        with pysam.VariantFile(fn) as inf:
+            assert len(list(inf.fetch("20"))) == 3
 
-    def test_bcf_with_csi_index(self):
-        with get_temp_context("tmp_fn.bcf") as fn:
-            shutil.copyfile(self.bcf_filename, fn)
+    def test_bcf_with_csi_index(self, tmp_path):
+        fn = str(tmp_path / "copy.bcf")
+        shutil.copyfile(self.bcf_filename, fn)
 
-            pysam.tabix_index(fn, preset="vcf", force=True, csi=True)
+        pysam.tabix_index(fn, preset="vcf", force=True, csi=True)
 
-            assert os.path.exists(fn + ".csi")
-            assert read_index_header(fn + ".csi") == b"CSI\1"
-            assert not os.path.exists(fn + ".tbi")
+        assert os.path.exists(fn + ".csi")
+        assert read_index_header(fn + ".csi") == b"CSI\1"
+        assert not os.path.exists(fn + ".tbi")
 
-            with pysam.VariantFile(fn) as inf:
-                assert len(list(inf.fetch("20"))) == 3
+        with pysam.VariantFile(fn) as inf:
+            assert len(list(inf.fetch("20"))) == 3
 
 
 class TestHeader:
@@ -481,11 +472,10 @@ class TestConstructionVCFWithContigs:
         lines_in = slurp_file(fn_in, omit=lambda x: x.startswith("##contig"))
         lines_out = slurp_file(fn_out, omit=lambda x: x.startswith("##contig"))
         assert sorted(lines_in) == sorted(lines_out)
-        os.unlink(fn_out)
 
-    def testConstructionWithRecords(self):
+    def testConstructionWithRecords(self, tmp_path):
         fn_in = os.path.join(CBCF_DATADIR, self.filename)
-        fn_out = get_temp_filename(suffix=".vcf")
+        fn_out = str(tmp_path / "copy.vcf")
         vcf_in = pysam.VariantFile(fn_in)
 
         header = pysam.VariantHeader()
@@ -505,9 +495,9 @@ class TestConstructionVCFWithContigs:
         vcf_out.close()
         self.complete_check(fn_in, fn_out)
 
-    def testConstructionFromCopy(self):
+    def testConstructionFromCopy(self, tmp_path):
         fn_in = os.path.join(CBCF_DATADIR, self.filename)
-        fn_out = get_temp_filename(suffix=".vcf")
+        fn_out = str(tmp_path / "copy.vcf")
         vcf_in = pysam.VariantFile(fn_in)
 
         vcf_out = pysam.VariantFile(fn_out, "w", header=vcf_in.header)
@@ -519,9 +509,9 @@ class TestConstructionVCFWithContigs:
 
         self.complete_check(fn_in, fn_out)
 
-    def testConstructionWithLines(self):
+    def testConstructionWithLines(self, tmp_path):
         fn_in = os.path.join(CBCF_DATADIR, self.filename)
-        fn_out = get_temp_filename(suffix=".vcf")
+        fn_out = str(tmp_path / "copy.vcf")
         vcf_in = pysam.VariantFile(fn_in)
 
         header = pysam.VariantHeader()
@@ -599,7 +589,7 @@ class TestMultiThreading:
 
     filename = os.path.join(CBCF_DATADIR, "example_vcf42.vcf.gz")
 
-    def testSingleThreadEqualsMultithreadResult(self):
+    def testSingleThreadEqualsMultithreadResult(self, tmp_path):
         with pysam.VariantFile(self.filename) as inf:
             header = inf.header
             single = [r for r in inf]
@@ -608,7 +598,7 @@ class TestMultiThreading:
         for r1, r2 in zip(single, multi):
             assert str(r1) == str(r2)
 
-        bcf_out = get_temp_filename(suffix=".bcf")
+        bcf_out = tmp_path / "multioutput.bcf"
         with pysam.VariantFile(bcf_out, mode='wb',
                                header=header,
                                threads=2) as out:
