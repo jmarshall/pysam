@@ -41,6 +41,10 @@ jobs:
         run: |
           brew unlink xz || true  # Remove brewed liblzma as it is not multiarch
 
+      - name: Show package versions
+        run: |
+          python -mpip list | grep -E '([cC]ython|build|docutils|mypy|pytest|setuptools|[sS]phinx|pysam)' >> $GITHUB_STEP_SUMMARY
+
       - name: Build (directly from checkout)
         run:  python setup.py build
 
