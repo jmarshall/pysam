@@ -33,17 +33,14 @@ FILE * bcftools_set_stderr(int fd);
 FILE * bcftools_set_stdout(int fd);
 
 /*! set pysam standard output to point to filename
-
  */
 void bcftools_set_stdout_fn(const char * fn);
 
 /*! close pysam standard error and set to NULL
-  
  */
 void bcftools_close_stderr(void);
 
 /*! close pysam standard output and set to NULL
-  
  */
 void bcftools_close_stdout(void);
 

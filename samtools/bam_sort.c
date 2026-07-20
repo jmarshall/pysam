@@ -1,6 +1,6 @@
 /*  bam_sort.c -- sorting and merging.
 
-    Copyright (C) 2008-2025 Genome Research Ltd.
+    Copyright (C) 2008-2026 Genome Research Ltd.
     Portions copyright (C) 2009-2012 Broad Institute.
 
     Author: Heng Li <lh3@sanger.ac.uk>
@@ -68,6 +68,7 @@ typedef struct {
     bool neg1;
     bool neg2;
     const char *library;
+    char *cid;
     char *mid;
     char *name;
     bool is_upper_of_pair;
@@ -1651,10 +1652,20 @@ int bam_merge(int argc, char *argv[])
         case '1': flag |= MERGE_LEVEL1; level = 1; break;
         case 'u': flag |= MERGE_UNCOMP; level = 0; break;
         case 'R': reg = strdup(optarg); break;
-        case 'l': level = atoi(optarg); break;
+        case 'l':
+            if (!parse_int_value(optarg, &level)) {
+                fprintf(stderr, "Invalid compression level\n");
+                ret = 1; goto end;
+            }
+            break;
         case 'c': flag |= MERGE_COMBINE_RG; break;
         case 'p': flag |= MERGE_COMBINE_PG; break;
-        case 's': random_seed = atol(optarg); break;
+        case 's':
+            if (!parse_long_value(optarg, &random_seed, 10)) {
+                fprintf(stderr, "Invalid random seed\n");
+                ret = 1; goto end;
+            }
+            break;
         case 'X': has_index_file = 1; break; // -X flag for index filename
         case 'L': fn_bed = optarg; break;
         case 'b': {
@@ -2188,6 +2199,7 @@ static template_coordinate_key_t* template_coordinate_key(bam1_t *b, template_co
     key->tid1 = key->tid2 = INT32_MAX;
     key->pos1 = key->pos2 = HTS_POS_MAX;
     key->neg1 = key->neg2 = false;
+    key->cid  = "";
     key->mid  = "";
 
     // update values
@@ -2202,7 +2214,7 @@ static template_coordinate_key_t* template_coordinate_key(bam1_t *b, template_co
     if (!(b->core.flag & BAM_FUNMAP)) { // read is mapped, update coordinates
         key->tid1 = b->core.tid;
         key->neg1 = bam_is_rev(b);
-        key->pos1 = (key->neg1) ? unclipped_end(b) : unclipped_start(b);
+        key->pos1 = (key->neg1) ? unclipped_end(b, 0) : unclipped_start(b, 0);
     }
     if (b->core.flag & BAM_FPAIRED && !(b->core.flag & BAM_FMUNMAP)) { // mate is mapped, update coordinates
         char *cigar;
@@ -2217,7 +2229,14 @@ static template_coordinate_key_t* template_coordinate_key(bam1_t *b, template_co
         }
         key->tid2 = b->core.mtid;
         key->neg2 = bam_is_mrev(b);
-        key->pos2 = (key->neg2) ? unclipped_other_end(b->core.mpos, cigar) : unclipped_other_start(b->core.mpos, cigar);
+        key->pos2 = (key->neg2) ? unclipped_other_end(b->core.mpos, cigar, 0) : unclipped_other_start(b->core.mpos, cigar, 0);
+    }
+
+    if ((data = bam_aux_get(b, "CB"))) {
+        if (!(key->cid=bam_aux2Z(data))) {
+            fprintf(stderr, "[bam_sort] error: CB tag wrong type (not a string).\n");
+            return NULL;
+        }
     }
 
     if ((data = bam_aux_get(b, "MI"))) {
@@ -2258,9 +2277,10 @@ static template_coordinate_key_t* template_coordinate_key(bam1_t *b, template_co
 // 1. the earlier unclipped 5' coordinate of the read pair
 // 2. the higher unclipped 5' coordinate of the read pair
 // 3. library (from read group)
-// 4. the molecular identifier (if present)
-// 5. read name
-// 6. if unpaired, or if R1 has the lower coordinates of the pair
+// 4. the cellular barcode (CB tag, if present)
+// 5. the molecular identifier (MI tag, if present)
+// 6. read name
+// 7. if unpaired, or if R1 has the lower coordinates of the pair
 // Returns a value less than, equal to or greater than zero if a is less than,
 // equal to or greater than b, respectively.
 static inline int bam1_cmp_template_coordinate(const bam1_tag a, const bam1_tag b)
@@ -2279,6 +2299,7 @@ static inline int bam1_cmp_template_coordinate(const bam1_tag a, const bam1_tag 
     if (0 == retval) retval = key_a->neg1 == key_b->neg1 ? 0 : (key_a->neg1 ? -1 : 1);
     if (0 == retval) retval = key_a->neg2 == key_b->neg2 ? 0 : (key_a->neg2 ? -1 : 1);
     if (0 == retval) retval = strcmp(key_a->library, key_b->library);
+    if (0 == retval) retval = strcmp(key_a->cid, key_b->cid);
     if (0 == retval) retval = template_coordinate_key_compare_mid(key_a->mid, key_b->mid);
     if (0 == retval) retval = strcmp(key_a->name, key_b->name);
     if (0 == retval) retval = key_a->is_upper_of_pair == key_b->is_upper_of_pair ? 0 : (key_a->is_upper_of_pair ? 1 : -1);
@@ -3778,7 +3799,12 @@ int bam_sort(int argc, char *argv[])
                 break;
             }
         case 'T': kputs(optarg, &tmpprefix); break;
-        case 'l': level = atoi(optarg); break;
+        case 'l':
+            if (!parse_int_value(optarg, &level)) {
+                fprintf(stderr, "Invalid compression level\n");
+                sort_usage(stderr); ret = EXIT_FAILURE; goto sort_end;
+            }
+            break;
         case 'u': level = 0; break;
         case   1: no_pg = 1; break;
         case   2: sam_order = TemplateCoordinate; break;
@@ -3789,11 +3815,19 @@ int bam_sort(int argc, char *argv[])
             break;
         case 'H': no_squash = 0; break;
 
-        case 'w': window = atoi(optarg); break;
+        case 'w':
+            if (!parse_int_value(optarg, &window)) {
+                fprintf(stderr, "Invalid window\n");
+                sort_usage(stderr); ret = EXIT_FAILURE; goto sort_end;
+            }
+            break;
 
         case 'R': try_rev = false; break;
         case 'K':
-            minimiser_kmer = atoi(optarg);
+            if (!parse_int_value(optarg, &minimiser_kmer)) {
+                fprintf(stderr, "Invalid kmer\n");
+                sort_usage(stderr); ret = EXIT_FAILURE; goto sort_end;
+            }
             if (minimiser_kmer < 1)
                 minimiser_kmer = 1;
             else if (minimiser_kmer > 31)

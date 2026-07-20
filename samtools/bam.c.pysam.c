@@ -2,7 +2,7 @@
 
 /*  bam.c -- miscellaneous BAM functions.
 
-    Copyright (C) 2008-2013, 2015, 2019-2020, 2022 Genome Research Ltd.
+    Copyright (C) 2008-2013, 2015, 2019-2020, 2022, 2025 Genome Research Ltd.
     Portions copyright (C) 2009-2012 Broad Institute.
 
     Author: Heng Li <lh3@sanger.ac.uk>
@@ -159,8 +159,10 @@ rmB_err:
     return -1;
 }
 
-/* Calculate the current read's start based on the stored cigar string. */
-hts_pos_t unclipped_start(bam1_t *b) {
+/* Calculate the current read's start based on the stored cigar string.
+   If include_hard_clips is true, both soft and hard clips are considered.
+   If false, only soft clips are considered. */
+hts_pos_t unclipped_start(bam1_t *b, int include_hard_clips) {
     uint32_t *cigar = bam_get_cigar(b);
     int64_t clipped = 0;
     uint32_t i;
@@ -168,9 +170,9 @@ hts_pos_t unclipped_start(bam1_t *b) {
     for (i = 0; i < b->core.n_cigar; i++) {
         char c = bam_cigar_opchr(cigar[i]);
 
-        if (c == 'S' || c == 'H') { // clips
+        if (c == 'S' || (include_hard_clips && c == 'H')) { // clips
             clipped += bam_cigar_oplen(cigar[i]);
-        } else {
+        } else if (c != 'H') {
             break;
         }
     }
@@ -178,8 +180,10 @@ hts_pos_t unclipped_start(bam1_t *b) {
     return b->core.pos - clipped + 1;
 }
 
-/* Calculate the mate's unclipped start based on position and cigar string from MC tag. */
-hts_pos_t unclipped_other_start(hts_pos_t op, char *cigar) {
+/* Calculate the mate's unclipped start based on position and cigar string from MC tag.
+   If include_hard_clips is true, both soft and hard clips are considered.
+   If false, only soft clips are considered. */
+hts_pos_t unclipped_other_start(hts_pos_t op, char *cigar, int include_hard_clips) {
     char *c = cigar;
     int64_t clipped = 0;
 
@@ -192,9 +196,9 @@ hts_pos_t unclipped_other_start(hts_pos_t op, char *cigar) {
             num = 1;
         }
 
-        if (*c == 'S' || *c == 'H') { // clips
+        if (*c == 'S' || (include_hard_clips && *c == 'H')) { // clips
             clipped += num;
-        } else {
+        } else if (*c != 'H') {
             break;
         }
 
@@ -204,8 +208,10 @@ hts_pos_t unclipped_other_start(hts_pos_t op, char *cigar) {
     return op - clipped + 1;
 }
 
-/* Calculate the current read's end based on the stored cigar string. */
-hts_pos_t unclipped_end(bam1_t *b) {
+/* Calculate the current read's end based on the stored cigar string.
+   If include_hard_clips is true, both soft and hard clips are considered.
+   If false, only soft clips are considered. */
+hts_pos_t unclipped_end(bam1_t *b, int include_hard_clips) {
     uint32_t *cigar = bam_get_cigar(b);
     hts_pos_t end_pos, clipped = 0;
     int32_t i;
@@ -218,9 +224,9 @@ hts_pos_t unclipped_end(bam1_t *b) {
     for (i = b->core.n_cigar - 1; i >= 0; i--) {
         char c = bam_cigar_opchr(cigar[i]);
 
-        if (c == 'S' || c == 'H') { // clips
+        if (c == 'S' || (include_hard_clips && c == 'H')) { // clips
             clipped += bam_cigar_oplen(cigar[i]);
-        } else {
+        } else if (c != 'H') {
             break;
         }
     }
@@ -229,8 +235,10 @@ hts_pos_t unclipped_end(bam1_t *b) {
 }
 
 
-/* Calculate the mate's unclipped end based on start position and cigar string from MC tag.*/
-hts_pos_t unclipped_other_end(int64_t op, char *cigar) {
+/* Calculate the mate's unclipped end based on start position and cigar string from MC tag.
+   If include_hard_clips is true, both soft and hard clips are considered.
+   If false, only soft clips are considered. */
+hts_pos_t unclipped_other_end(int64_t op, char *cigar, int include_hard_clips) {
     char *c = cigar;
     int64_t refpos = 0;
     int skip = 1;
@@ -255,10 +263,15 @@ hts_pos_t unclipped_other_end(int64_t op, char *cigar) {
             break;
 
             case 'S':
-            case 'H':
                 if (!skip) {
-                refpos += num;
-            }
+                    refpos += num;
+                }
+            break;
+
+            case 'H':
+                if (!skip && include_hard_clips) {
+                    refpos += num;
+                }
             break;
         }
 
