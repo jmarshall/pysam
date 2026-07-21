@@ -781,26 +781,23 @@ Operating System :: Unix
 Operating System :: MacOS
 """
 
-metadata = {
-    'name': "pysam",
-    'version': get_pysam_version(),
-    'description': "Package for reading, manipulating, and writing genomic data",
-    'long_description': __doc__,
-    'long_description_content_type': "text/x-rst",
-    'author': "Andreas Heger",
-    'author_email': "andreas.heger@gmail.com",
-    'license': "MIT",
-    'platforms': ["POSIX", "UNIX", "MacOS"],
-    'classifiers': [_f for _f in classifiers.split("\n") if _f],
-    'url': "https://github.com/pysam-developers/pysam",
-    'packages': package_list,
-    'ext_modules': [CyExtension(**opts) for opts in modules],
-    'cmdclass': {'build_ext': cy_build_ext, 'clean_ext': clean_ext, 'sdist': cythonize_sdist},
-    'package_dir': package_dirs,
-    'package_data': {'': ['*.pxd', '*.h', 'py.typed', '*.pyi'], },
+setup(
+    name="pysam",
+    version=get_pysam_version(),
+    description="Package for reading, manipulating, and writing genomic data",
+    long_description=__doc__,
+    long_description_content_type="text/x-rst",
+    author="Andreas Heger",
+    author_email="andreas.heger@gmail.com",
+    license="MIT",
+    platforms=["POSIX", "UNIX", "MacOS"],
+    classifiers=[_f for _f in classifiers.split("\n") if _f],
+    url="https://github.com/pysam-developers/pysam",
+    packages=package_list,
+    ext_modules=[CyExtension(**opts) for opts in modules],
+    cmdclass={'build_ext': cy_build_ext, 'clean_ext': clean_ext, 'sdist': cythonize_sdist},
+    package_dir=package_dirs,
+    package_data={'': ['*.pxd', '*.h', 'py.typed', '*.pyi'], },
     # do not pack in order to permit linking to csamtools.so
-    'zip_safe': False,
-}
-
-if __name__ == '__main__':
-    dist = setup(**metadata)
+    zip_safe=False,
+)
