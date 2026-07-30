@@ -15,6 +15,7 @@ file formats.
 
 import collections
 import glob
+import importlib.metadata
 import logging
 import os
 import platform
@@ -23,25 +24,15 @@ import subprocess
 import sys
 import sysconfig
 from contextlib import contextmanager
-from setuptools import setup, Command
+
+from setuptools import Command, Extension, setup
+from setuptools.command.build_ext import build_ext
 from setuptools.command.sdist import sdist
-from setuptools.extension import Extension
 
 try:
     from setuptools.errors import CompileError, LinkError
 except ImportError:
     from distutils.errors import CompileError, LinkError
-
-try:
-    from Cython.Distutils import build_ext
-except ImportError:
-    from setuptools.command.build_ext import build_ext
-
-try:
-    import cython  # noqa
-    HAVE_CYTHON = True
-except ImportError:
-    HAVE_CYTHON = False
 
 IS_DARWIN = platform.system() == 'Darwin'
 
@@ -353,6 +344,15 @@ class cy_build_ext(build_ext):
         return None
 
     def run(self):
+        try:
+            cython_version = importlib.metadata.version("Cython")
+            log.info("building extensions using Cython %s", cython_version)
+        except ModuleNotFoundError:
+            if os.path.exists("pysam/libchtslib.c"):
+                log.info("building extensions from existing pysam/libc*.c files as Cython is not available")
+            else:
+                raise FileNotFoundError("Cython is not installed and pysam/libc*.c files are not present")
+
         if sys.platform == 'darwin':
             ldshared = os.environ.get('LDSHARED', sysconfig.get_config_var('LDSHARED'))
             os.environ['LDSHARED'] = ldshared.replace('-bundle', '')
@@ -491,23 +491,6 @@ package_dirs = {'pysam': 'pysam',
 # subpackages.
 config_headers = ["samtools/config.h",
                   "bcftools/config.h"]
-
-# If cython is available, the pysam will be built using cython from
-# the .pyx files. If no cython is available, the C-files included in the
-# distribution will be used.
-if HAVE_CYTHON:
-    print(f"# pysam: Cython {cython.__version__} is available - using cythonize if necessary")
-    source_pattern = "pysam/libc%s.pyx"
-else:
-    print("# pysam: no Cython available - using pre-compiled C")
-    source_pattern = "pysam/libc%s.c"
-
-# Exit if there are no pre-compiled files and no cython available
-fn = source_pattern % "htslib"
-if not os.path.exists(fn):
-    raise ValueError(
-        f"no Cython installed, but cannot find {fn}. "
-        "Make sure that Cython is installed when building from the repository")
 
 print(f"# pysam: htslib mode is {HTSLIB_MODE}")
 print(f"# pysam: HTSLIB_CONFIGURE_OPTIONS={HTSLIB_CONFIGURE_OPTIONS}")
@@ -689,69 +672,69 @@ def prebuild_libcsamtools(ext, force):
 modules = [
     dict(name="pysam.libchtslib",
          prebuild_func=prebuild_libchtslib,
-         sources=[source_pattern % "htslib", "pysam/htslib_util.c"] + os_c_files,
+         sources=["pysam/libchtslib.pyx", "pysam/htslib_util.c"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam"] + htslib_include_dirs + include_os],
          extra_objects=htslib_objects,
          libraries=external_htslib_libraries),
     dict(name="pysam.libcsamtools",
          prebuild_func=prebuild_libcsamtools,
-         sources=[source_pattern % "samtools"] + glob.glob(os.path.join("samtools", "*.pysam.c")) +
+         sources=["pysam/libcsamtools.pyx"] + glob.glob(os.path.join("samtools", "*.pysam.c")) +
          [os.path.join("samtools", "lz4", "lz4.c")] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam", "samtools", "samtools/lz4"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=external_htslib_libraries + internal_htslib_libraries),
     dict(name="pysam.libcbcftools",
-         sources=[source_pattern % "bcftools"] + glob.glob(os.path.join("bcftools", "*.pysam.c")) + os_c_files,
+         sources=["pysam/libcbcftools.pyx"] + glob.glob(os.path.join("bcftools", "*.pysam.c")) + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam", "bcftools"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=external_htslib_libraries + internal_htslib_libraries),
     dict(name="pysam.libcutils",
-         sources=[source_pattern % "utils"] + os_c_files,
+         sources=["pysam/libcutils.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam", "samtools", "bcftools"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=external_htslib_libraries + internal_htslib_libraries + internal_samtools_libraries),
     dict(name="pysam.libcalignmentfile",
-         sources=[source_pattern % "alignmentfile"] + os_c_files,
+         sources=["pysam/libcalignmentfile.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=libraries_for_pysam_module),
     dict(name="pysam.libcsamfile",
-         sources=[source_pattern % "samfile"] + os_c_files,
+         sources=["pysam/libcsamfile.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=libraries_for_pysam_module),
     dict(name="pysam.libcalignedsegment",
-         sources=[source_pattern % "alignedsegment"] + os_c_files,
+         sources=["pysam/libcalignedsegment.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=libraries_for_pysam_module),
     dict(name="pysam.libctabix",
-         sources=[source_pattern % "tabix"] + os_c_files,
+         sources=["pysam/libctabix.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=libraries_for_pysam_module),
     dict(name="pysam.libcfaidx",
-         sources=[source_pattern % "faidx"] + os_c_files,
+         sources=["pysam/libcfaidx.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=libraries_for_pysam_module),
     dict(name="pysam.libcbcf",
-         sources=[source_pattern % "bcf"] + os_c_files,
+         sources=["pysam/libcbcf.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=libraries_for_pysam_module),
     dict(name="pysam.libcbgzf",
-         sources=[source_pattern % "bgzf"] + os_c_files,
+         sources=["pysam/libcbgzf.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=libraries_for_pysam_module),
     dict(name="pysam.libctabixproxies",
-         sources=[source_pattern % "tabixproxies"] + os_c_files,
+         sources=["pysam/libctabixproxies.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=libraries_for_pysam_module),
     dict(name="pysam.libcvcf",
-         sources=[source_pattern % "vcf"] + os_c_files,
+         sources=["pysam/libcvcf.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
          libraries=libraries_for_pysam_module),
