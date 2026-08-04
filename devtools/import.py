@@ -112,7 +112,7 @@ def _update_pysam_files(cf, destdir):
                         SPECIFIC_SUBSTITUTIONS[fn][0],
                         SPECIFIC_SUBSTITUTIONS[fn][1])
                 if fn == "bamtk.c":
-                    lines = re.sub(r'(#include "version.h")', r'\1\n#include "samtools_config_vars.h"', lines)
+                    lines = re.sub(r'build=Makefile', r'build=setuptools', lines)
                     lines = re.sub(r'(else if.*"tview")', r'//\1', lines)
                     lines = re.sub(r'(if[ (]*fclose)', r'if (0) { //\1', lines)
 

@@ -20,12 +20,15 @@ import logging
 import os
 import platform
 import re
+import shlex
 import subprocess
 import sys
 import sysconfig
 from contextlib import contextmanager
+from pathlib import Path
 
 from setuptools import Command, Extension, setup
+from setuptools.command.build_clib import build_clib as build_clib_orig
 from setuptools.command.build_ext import build_ext
 from setuptools.command.sdist import sdist
 
@@ -101,6 +104,21 @@ def run_nm_defined_symbols(objfile):
                 if sym[0] not in "_$.@": symbols.add(sym)
 
     return symbols
+
+
+def write_if_changed(path, new_text):
+    if not isinstance(new_text, str):
+        new_text = "\n".join(new_text) + "\n"
+
+    changed = False
+    try:
+        if path.read_text() != new_text: changed = "updating"
+    except FileNotFoundError:
+        changed = "creating"
+
+    if changed:
+        log.info("%s %s", changed, str(path))
+        path.write_text(new_text)
 
 
 def adjust_cflags(command, incdir="/usr/local/include"):
@@ -285,6 +303,38 @@ class cythonize_sdist(sdist):
         super().run()
 
 
+def compiler_dict(compiler, extra_cflags):
+    return {
+        "CC": shlex.quote(compiler.compiler_so[0]),
+        "CFLAGS": shlex.join(compiler.compiler_so[1:] + extra_cflags),
+        "CPPFLAGS": "",
+        "LDFLAGS": shlex.join(compiler.linker_so[1:]),
+    }
+
+
+class build_clib(build_clib_orig):
+    def samtools_config(self, library):
+        def single_quote(s): return s.replace('"', "'")
+
+        config = compiler_dict(self.compiler, library[1]["cflags"])
+        config["LIBS"] = " ".join(f"-l{lib}" for lib in internal_htslib_libraries)
+        config["HTSDIR"] = "../htslib" if HTSLIB_SOURCE == "builtin" else ""
+        config["CURSES_LIB"] = ""
+        return [f'#define SAMTOOLS_{var} "{single_quote(value)}"' for var, value in config.items()]
+
+    def bcftools_config(self):
+        shlib_suffix = sysconfig.get_config_var("SHLIB_SUFFIX")
+        return ["#define ENABLE_BCF_PLUGINS 1", f'#define PLUGIN_EXT "{shlib_suffix}"']
+
+    def build_libraries(self, libraries):
+        srcbase = Path(__file__).parent
+
+        write_if_changed(srcbase/"samtools"/"config.h", self.samtools_config(libraries[0]))
+        write_if_changed(srcbase/"bcftools"/"config.h", self.bcftools_config())
+
+        super().build_libraries(libraries)
+
+
 # Override Cythonised build_ext command to customise macOS shared libraries.
 
 class CyExtension(Extension):
@@ -367,6 +417,10 @@ class cy_build_ext(build_ext):
             log.warning("skipping symbol collision check (invoking nm failed)")
 
     def build_extensions(self):
+        # Libraries will be individually added for the particular extensions that need them.
+        self.libraries = []
+        self.compiler.set_libraries([])
+
         c99_flags = self.c99_compile_args()
         if c99_flags:
             executables = {}
@@ -489,8 +543,7 @@ package_dirs = {'pysam': 'pysam',
 # list of config files that will be automatically generated should
 # they not already exist or be created by configure scripts in the
 # subpackages.
-config_headers = ["samtools/config.h",
-                  "bcftools/config.h"]
+config_headers = []
 
 print(f"# pysam: htslib mode is {HTSLIB_MODE}")
 print(f"# pysam: HTSLIB_CONFIGURE_OPTIONS={HTSLIB_CONFIGURE_OPTIONS}")
@@ -665,9 +718,19 @@ def prebuild_libchtslib(ext, force):
         log.warning("skipping 'libhts.a' (already built)")
 
 
-def prebuild_libcsamtools(ext, force):
-    write_configvars_header("samtools/samtools_config_vars.h", ext, "SAMTOOLS")
-
+libraries = [
+    ("sam", {
+        "sources": glob.glob(os.path.join("samtools", "*.pysam.c")) + [os.path.join("samtools", "lz4", "lz4.c")],
+        "include_dirs": ["samtools", "samtools/lz4"] + htslib_include_dirs,
+        "cflags": extra_compile_args,
+        "obj_deps": {"samtools/bamtk.c.pysam.c": ["samtools/config.h"]},
+    }),
+    ("bcf", {
+        "sources": glob.glob(os.path.join("bcftools", "*.pysam.c")),
+        "include_dirs": ["bcftools"] + htslib_include_dirs,
+        "cflags": extra_compile_args,
+    }),
+]
 
 modules = [
     dict(name="pysam.libchtslib",
@@ -677,17 +740,15 @@ modules = [
          extra_objects=htslib_objects,
          libraries=external_htslib_libraries),
     dict(name="pysam.libcsamtools",
-         prebuild_func=prebuild_libcsamtools,
-         sources=["pysam/libcsamtools.pyx"] + glob.glob(os.path.join("samtools", "*.pysam.c")) +
-         [os.path.join("samtools", "lz4", "lz4.c")] + os_c_files,
+         sources=["pysam/libcsamtools.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam", "samtools", "samtools/lz4"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
-         libraries=external_htslib_libraries + internal_htslib_libraries),
+         libraries=["sam"] + external_htslib_libraries + internal_htslib_libraries),
     dict(name="pysam.libcbcftools",
-         sources=["pysam/libcbcftools.pyx"] + glob.glob(os.path.join("bcftools", "*.pysam.c")) + os_c_files,
+         sources=["pysam/libcbcftools.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam", "bcftools"] + htslib_include_dirs + include_os],
          extra_objects=separate_htslib_objects,
-         libraries=external_htslib_libraries + internal_htslib_libraries),
+         libraries=["bcf"] + external_htslib_libraries + internal_htslib_libraries),
     dict(name="pysam.libcutils",
          sources=["pysam/libcutils.pyx"] + os_c_files,
          include_dirs=[os.path.abspath(x) for x in ["pysam", "samtools", "bcftools"] + htslib_include_dirs + include_os],
@@ -777,8 +838,9 @@ setup(
     classifiers=[_f for _f in classifiers.split("\n") if _f],
     url="https://github.com/pysam-developers/pysam",
     packages=package_list,
+    libraries=libraries,
     ext_modules=[CyExtension(**opts) for opts in modules],
-    cmdclass={'build_ext': cy_build_ext, 'clean_ext': clean_ext, 'sdist': cythonize_sdist},
+    cmdclass={'build_clib': build_clib, 'build_ext': cy_build_ext, 'clean_ext': clean_ext, 'sdist': cythonize_sdist},
     package_dir=package_dirs,
     package_data={'': ['*.pxd', '*.h', 'py.typed', '*.pyi'], },
     # do not pack in order to permit linking to csamtools.so

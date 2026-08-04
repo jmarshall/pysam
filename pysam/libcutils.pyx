@@ -22,11 +22,8 @@ from libc.stdio cimport stdout as c_stdout
 from posix.fcntl cimport open as c_open, O_WRONLY, O_CREAT, O_TRUNC
 from posix.unistd cimport dup as c_dup, SEEK_SET, SEEK_CUR, SEEK_END, STDOUT_FILENO
 
-from pysam.libcsamtools cimport samtools_dispatch, samtools_set_stdout, samtools_set_stderr, \
-    samtools_close_stdout, samtools_close_stderr, samtools_set_stdout_fn
-
-from pysam.libcbcftools cimport bcftools_dispatch, bcftools_set_stdout, bcftools_set_stderr, \
-    bcftools_close_stdout, bcftools_close_stderr, bcftools_set_stdout_fn
+from pysam.libcsamtools cimport samtools_invoke, samtools_set_stdout_fn
+from pysam.libcbcftools cimport bcftools_invoke, bcftools_set_stdout_fn
 
 #####################################################################
 # hard-coded constants
@@ -417,20 +414,12 @@ def _pysam_dispatch(collection,
     # call samtools/bcftools
     if collection == b"samtools":
         if stdout_f_bytes is not None: samtools_set_stdout_fn(stdout_f_bytes)
-        samtools_set_stdout(stdout_h)
-        samtools_set_stderr(stderr_h)
-        retval = samtools_dispatch(n + 2, cargs)
+        retval = samtools_invoke(n + 2, cargs, stdout_h, stderr_h)
         samtools_set_stdout_fn(NULL)
-        samtools_close_stdout()
-        samtools_close_stderr()
     elif collection == b"bcftools":
         if stdout_f_bytes is not None: bcftools_set_stdout_fn(stdout_f_bytes)
-        bcftools_set_stdout(stdout_h)
-        bcftools_set_stderr(stderr_h)
-        retval = bcftools_dispatch(n + 2, cargs)
+        retval = bcftools_invoke(n + 2, cargs, stdout_h, stderr_h)
         bcftools_set_stdout_fn(NULL)
-        bcftools_close_stdout()
-        bcftools_close_stderr()
     else:
         # unknown -- just return a Unix shell's "command not found" exit status
         retval = 127

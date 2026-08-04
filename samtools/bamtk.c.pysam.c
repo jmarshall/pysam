@@ -35,7 +35,6 @@ DEALINGS IN THE SOFTWARE.  */
 #include "htslib/hfile.h"
 #include "samtools.h"
 #include "version.h"
-#include "samtools_config_vars.h"
 
 int bam_taf2baf(int argc, char *argv[]);
 int bam_mpileup(int argc, char *argv[]);
@@ -91,7 +90,7 @@ const char *samtools_feature_string(void) {
 #ifdef PACKAGE_URL
     "build=configure "
 #else
-    "build=Makefile "
+    "build=setuptools "
 #endif
 
 #ifdef HAVE_CURSES
