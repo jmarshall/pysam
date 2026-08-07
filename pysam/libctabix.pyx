@@ -59,7 +59,8 @@ import sys
 from libc.stdio cimport printf, fprintf, stderr
 from libc.string cimport strerror
 from libc.errno cimport errno
-from posix.unistd cimport dup
+from posix.fcntl cimport open as c_open, O_RDONLY
+from posix.unistd cimport close, dup, read
 
 from cpython.object cimport PyObject_AsFileDescriptor
 
@@ -74,7 +75,7 @@ from pysam.libchtslib cimport htsFile, hts_open, hts_close, HTS_IDX_START,\
     no_compression, bcf, bcf_index_build2
 
 from pysam.libcutils cimport force_bytes, force_str, charptr_to_str
-from pysam.libcutils cimport encode_filename, from_string_and_size
+from pysam.libcutils cimport OSError_from_errno, encode_filename, from_string_and_size
 
 
 cdef class Parser:
@@ -817,9 +818,6 @@ def tabix_compress(filename_in,
     cdef void * buffer
     cdef BGZF * fp
     cdef int fd_src
-    cdef bint is_empty = True
-    cdef int O_RDONLY
-    O_RDONLY = os.O_RDONLY
 
     WINDOW_SIZE = 64 * 1024
 
@@ -828,12 +826,12 @@ def tabix_compress(filename_in,
     with nogil:
         fp = bgzf_open(cfn, "w")
     if fp == NULL:
-        raise IOError("could not open '%s' for writing" % filename_out)
+        raise OSError_from_errno("Could not open output", filename_out)
 
     fn = encode_filename(filename_in)
-    fd_src = open(fn, O_RDONLY)
-    if fd_src == 0:
-        raise IOError("could not open '%s' for reading" % filename_in)
+    fd_src = c_open(fn, O_RDONLY)
+    if fd_src < 0:
+        raise OSError_from_errno("Could not open input", filename_in)
 
     buffer = malloc(WINDOW_SIZE)
     c = 1
@@ -841,8 +839,6 @@ def tabix_compress(filename_in,
     while c > 0:
         with nogil:
             c = read(fd_src, buffer, WINDOW_SIZE)
-            if c > 0:
-                is_empty = False
             r = bgzf_write(fp, buffer, c)
         if r < 0:
             free(buffer)
@@ -854,10 +850,8 @@ def tabix_compress(filename_in,
         raise IOError("error %i when writing to file %s" % (r, filename_out))
 
     r = close(fd_src)
-    # an empty file will return with -1, thus ignore this.
     if r < 0:
-        if not (r == -1 and is_empty):
-            raise IOError("error %i when closing file %s" % (r, filename_in))
+        raise OSError_from_errno("Error when closing input", filename_in)
 
 
 def tabix_index(filename,

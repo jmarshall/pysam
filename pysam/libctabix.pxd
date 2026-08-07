@@ -5,15 +5,6 @@ from libc.stdlib cimport malloc, calloc, realloc, free
 from libc.string cimport memcpy, memcmp, strncpy, strlen, strdup
 from libc.stdio cimport FILE, printf
 
-# Note: this replaces python "open"!
-cdef extern from "fcntl.h":
-    int open(char *pathname, int flags)
-
-cdef extern from "unistd.h" nogil:
-    ctypedef int ssize_t
-    ssize_t read(int fd, void *buf, size_t count)
-    int close(int fd)
-
 from pysam.libchtslib cimport hts_idx_t, hts_itr_t, htsFile, \
     tbx_t, kstring_t, BGZF, HTSFile
 
