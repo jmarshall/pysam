@@ -449,6 +449,15 @@ class TestIndexFilename:
             with pysam.VariantFile(fn, index_filename=idx_fn) as inf:
                 assert len(list(inf.fetch('20'))) == 3
 
+    def testIndexUpdate(self):
+        fn, idx_fn = self.filenames[-1]
+        fn = os.path.join(CBCF_DATADIR, fn)
+        idx_fn = os.path.join(CBCF_DATADIR, idx_fn)
+
+        inf = pysam.VariantFile(fn, index_filename=idx_fn)
+        with pytest.raises(TypeError): inf.index.update({"M": 10})
+        with pytest.raises(TypeError): inf.index.pop("17")
+
 
 class TestConstructionVCFWithContigs:
     """construct VariantFile from scratch."""

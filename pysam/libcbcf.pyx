@@ -4340,7 +4340,7 @@ cdef class BaseIndex(object):
     #TODO: implement __richcmp__
 
 
-cdef class BCFIndex(object):
+cdef class BCFIndex(BaseIndex):
     """CSI index data structure for BCF files"""
     def __init__(self):
         self.refs = ()

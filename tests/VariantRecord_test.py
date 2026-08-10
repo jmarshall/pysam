@@ -92,6 +92,13 @@ def test_set_sample_alleles(vcf_header):
         record.samples['sample1'].alleles = (1, 0)
 
 
+def test_update_samples(vcf_header):
+    vcf_header.formats.add("DP", 1, "Integer", "Read depth")
+    record = vcf_header.new_record(contig="1", start=20, stop=30, alleles=("A", "T"), samples=[{"DP": 10}, {"DP": 20}])
+    with pytest.raises(TypeError): record.samples.update({"sample1": "foo"})
+    with pytest.raises(TypeError): record.samples.pop("sample2")
+
+
 def test_sample_update_dict(vcf_header):
     vcf_header.formats.add("DA", 1, "Integer", "Misc")
     vcf_header.formats.add("DB", 1, "String", "Misc")
