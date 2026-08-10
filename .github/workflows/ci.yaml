@@ -84,7 +84,7 @@ jobs:
             python-version: "3.12"
 
           - os: netbsd
-            version: "10.1"
+            version: "11.0"
             python-version: "3.14"
 
     defaults:

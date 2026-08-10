@@ -39,7 +39,8 @@ elif test -x /usr/sbin/pkg; then
 elif test -x /usr/pkg/bin/pkgin; then
     echo Installing prerequisites via pkgin...
     pkgin update
-    pkgin -y install bcftools gmake py314-cython py314-mypy py314-setuptools py314-test samtools
+    # Omitting py314-mypy on this platform (NetBSD) as it is currently unavailable
+    pkgin -y install bcftools gmake py314-cython py314-setuptools py314-test samtools
 
 else
     echo No package manager detected
