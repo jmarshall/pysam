@@ -306,7 +306,7 @@ Bugs fixed:
 * Suppress spurious "Could not retrieve index file" message when opening an
   AlignmentFile. (#939, #1214, reported by ChengYong Tham and Sebastian Röner)
 
-* Propagate SAM parsing errors encounted in :meth:`.AlignedSegment.fromstring`.
+* Propagate parsing errors encountered in :meth:`.AlignedSegment.fromstring`.
   (#1196, reported by DV Klopfenstein)
 
 * Accept invalid MD:A tagged fields produced by HTSeq instead of crashing
@@ -325,7 +325,7 @@ New functionality:
   and clarify which functions use libc.SEEK_SET vs io.SEEK_SET.
   (#1185, requested by luyulin)
 
-* File handling improvements in samtools & bcftools commands. (should improve
+* File handling improvements in samtools and bcftools commands. (should improve
   #1193 and #1195, reported by Rob Bierman and Sam Chorlton)
 
 * Improve :class:`.FastxFile` performance. (PR #1227, thanks to Fabian Klötzl
@@ -929,7 +929,7 @@ incomplete and preliminary, but does offer a nearly complete immutable
 Pythonic interface to VCF/BCF metadata and data with reading and
 writing capability.
 
-Potential isses when upgrading from v0.8.3:
+Potential issues when upgrading from v0.8.3:
 
 * binary tags are now returned as python arrays
 

@@ -51,7 +51,7 @@
 #   * documentation
 #   * pickle support
 #   * left/right locus normalization
-#   * fix reopen to re-use fd
+#   * fix reopen to reuse fd
 #
 ###############################################################################
 #
@@ -4057,7 +4057,7 @@ cdef class VariantRecordSample(object):
     @alleles.setter
     def alleles(self, value):
         # Sets the genotype, supply a tuple of alleles to set.
-        # The supplied alleles need to be defined in the correspoding pysam.libcbcf.VariantRecord
+        # The supplied alleles need to be defined in the corresponding pysam.libcbcf.VariantRecord
         # The genotype is reset when an empty tuple, None or (None,) is supplied
 
         if value==(None,) or value==tuple() or value is None:
@@ -4799,7 +4799,7 @@ cdef class VariantFile(HTSFile):
         if not vars.htsfile:
             raise ValueError('Cannot re-open htsfile')
 
-        # minimize overhead by re-using header and index.  This approach is
+        # minimize overhead by reusing header and index.  This approach is
         # currently risky, but see above for how this can be mitigated.
         vars.header         = self.header
         vars.index          = self.index

@@ -311,7 +311,7 @@ the following functions are provided:
    :param bool split_lines: Whether to split the return value into a list of lines.
    :returns: Standard output if it was caught, otherwise None.
 
-   If `save_stdout` is not None, the command's standard ouput is written to the
+   If `save_stdout` is not None, the command's standard output is written to the
    file specified and the function returns None.
 
    Otherwise, if `catch_stdout` is true, the command's standard output is captured

@@ -119,7 +119,7 @@ def translateIndelGenotypeFromVCF(vcf_genotypes, ref):
         return s1[:n]
 
     def getSuffix(s1, s2):
-        '''get common sufix of strings s1 and s2.'''
+        '''get common suffix of strings s1 and s2.'''
         n = min(len(s1), len(s2))
         if s1[-1] != s2[-1]:
             return ""

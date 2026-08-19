@@ -292,7 +292,7 @@ class TestIterationWithoutComments(IterationTest):
 
         # out of range access
         # to be implemented
-        # wth pytest.raises(IndexError): self.tabix.fetch("chr1", 1000000, 2000000)
+        # with pytest.raises(IndexError): self.tabix.fetch("chr1", 1000000, 2000000)
 
         # raise no error for empty intervals
         self.tabix.fetch("chr1", 100, 100)
