@@ -34,7 +34,6 @@ DEALINGS IN THE SOFTWARE.  */
 #ifndef _WIN32
 # include <sys/select.h>
 #endif
-#include <sys/stat.h>
 #include <assert.h>
 #include <time.h>
 
@@ -47,7 +46,7 @@ DEALINGS IN THE SOFTWARE.  */
 #include "htslib/kstring.h"
 #include "htslib/khash.h"
 
-#include <curl/curl.h>
+#include "../pysam/dynamic_curl.h"
 
 // Number of seconds to take off auth_token expiry, to allow for clock skew
 // and slow servers
@@ -1404,19 +1403,6 @@ libcurl_open(const char *url, const char *modes, http_headers *headers)
         if (env_curl_ca_bundle) {
             err |= curl_easy_setopt(fp->easy, CURLOPT_CAINFO, env_curl_ca_bundle);
         }
-#if defined __linux__ && defined BUILDING_WHEEL
-        else {
-            // Linux wheels are (currently) built on AlmaLinux, so the libcurl.so bundled
-            // into the wheel follows Alma/Red Hat/Fedora conventions for the location of
-            // its certificate bundle. This fails when the wheel is used on a Debian/Ubuntu
-            // platform with a different convention for this location. When not overridden
-            // by $CURL_CA_BUNDLE, work around this by specifying the expected Debian bundle
-            // location if the Red Hat one isn't present.
-            struct stat st;
-            if (stat("/etc/pki", &st) < 0 && errno == ENOENT)
-                err |= curl_easy_setopt(fp->easy, CURLOPT_CAINFO, "/etc/ssl/certs/ca-certificates.crt");
-        }
-#endif
     }
     err |= curl_easy_setopt(fp->easy, CURLOPT_USERAGENT, curl.useragent.s);
     if (curl.low_speed_limit > 0 && curl.low_speed_time > 0) {
@@ -1718,7 +1704,7 @@ int PLUGIN_GLOBAL(hfile_plugin_init,_libcurl)(struct hFILE_plugin *self)
     CURLSHcode errsh;
 
     err = curl_global_init(CURL_GLOBAL_ALL);
-    if (err != CURLE_OK) { errno = easy_errno(NULL, err); return -1; }
+    if (err != CURLE_OK) { errno = ENETDOWN; return -1; }
 
     curl.share = curl_share_init();
     if (curl.share == NULL) { curl_global_cleanup(); errno = EIO; return -1; }
