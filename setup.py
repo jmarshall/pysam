@@ -513,6 +513,9 @@ print(f"# pysam: htslib mode is {HTSLIB_MODE}")
 print(f"# pysam: HTSLIB_CONFIGURE_OPTIONS={HTSLIB_CONFIGURE_OPTIONS}")
 htslib_configure_options = None
 
+define_macros = []
+dynamic_files = []
+
 if HTSLIB_MODE in ['shared', 'separate']:
     package_list += ['pysam.include.htslib',
                      'pysam.include.htslib.htslib']
@@ -542,10 +545,19 @@ if HTSLIB_MODE in ['shared', 'separate']:
     for key, value in htslib_make_options.items():
         print(f"# pysam: htslib_config {key}={value}")
 
+
     external_htslib_libraries = ['z']
     if "LIBS" in htslib_make_options:
         external_htslib_libraries.extend(
             [re.sub("^-l", "", x) for x in htslib_make_options["LIBS"].split(" ") if x.strip()])
+
+    for_redistribution = truthy(os.environ.get("CIBUILDWHEEL", "0"))
+
+    if sys.platform == "linux" and "curl" in external_htslib_libraries and for_redistribution:
+        dynamic_files.append("pysam/dynamic_libs.c")
+        define_macros.append(("DYNAMIC_NETWORK_LIBS", None))
+        # Filter out libraries that we will load dynamically at runtime
+        external_htslib_libraries = [lib for lib in external_htslib_libraries if lib not in ("curl", "crypto")]
 
 if HTSLIB_LIBRARY_DIR:
     # linking against a shared, externally installed htslib version,
@@ -633,11 +645,6 @@ else:
         "-Wno-sign-compare",
         "-Wno-error=declaration-after-statement"]
 
-define_macros = []
-
-if os.environ.get("CIBUILDWHEEL", "0") == "1":
-    define_macros.append(("BUILDING_WHEEL", None))
-
 suffix = sysconfig.get_config_var('EXT_SUFFIX')
 
 internal_htslib_libraries = [
@@ -689,7 +696,7 @@ def prebuild_libcsamtools(ext, force):
 modules = [
     dict(name="pysam.libchtslib",
          prebuild_func=prebuild_libchtslib,
-         sources=[source_pattern % "htslib", "pysam/htslib_util.c"] + os_c_files,
+         sources=[source_pattern % "htslib", "pysam/htslib_util.c"] + dynamic_files + os_c_files,
          extra_objects=htslib_objects,
          libraries=external_htslib_libraries),
     dict(name="pysam.libcsamtools",
@@ -785,7 +792,7 @@ metadata = {
     'ext_modules': [CyExtension(**opts) for opts in modules],
     'cmdclass': {'build_ext': cy_build_ext, 'clean_ext': clean_ext, 'sdist': cythonize_sdist},
     'package_dir': package_dirs,
-    'package_data': {'': ['*.pxd', '*.h', 'py.typed', '*.pyi'], },
+    'package_data': {'': ['*.pxd', 'htslib_util.h', 'py.typed', '*.pyi'], },
     'include_package_data': False,
     # do not pack in order to permit linking to csamtools.so
     'zip_safe': False,

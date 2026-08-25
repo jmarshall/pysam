@@ -44,7 +44,7 @@ DEALINGS IN THE SOFTWARE.  */
 #include "htslib/kstring.h"
 #include "hts_time_funcs.h"
 
-#include <curl/curl.h>
+#include "../pysam/dynamic_curl.h"
 
 typedef struct s3_auth_data {
     kstring_t id;
@@ -108,6 +108,9 @@ typedef struct {
 
 #include <CommonCrypto/CommonHMAC.h>
 
+#define dynamic_crypto_init()  0
+#define dynamic_crypto_cleanup()
+
 #define DIGEST_BUFSIZ CC_SHA1_DIGEST_LENGTH
 #define SHA256_DIGEST_BUFSIZE CC_SHA256_DIGEST_LENGTH
 #define HASH_LENGTH_SHA256 (SHA256_DIGEST_BUFSIZE * 2) + 1
@@ -133,8 +136,7 @@ static void s3_sign_sha256(const void *key, int key_len, const unsigned char *d,
 
 #elif defined HAVE_HMAC
 
-#include <openssl/hmac.h>
-#include <openssl/sha.h>
+#include "../pysam/dynamic_openssl.h"
 
 #define DIGEST_BUFSIZ EVP_MAX_MD_SIZE
 #define SHA256_DIGEST_BUFSIZE SHA256_DIGEST_LENGTH
@@ -2563,6 +2565,7 @@ static void s3_exit(void) {
     free(curl.useragent.s);
     curl.useragent.l = curl.useragent.m = 0; curl.useragent.s = NULL;
     curl_global_cleanup();
+    dynamic_crypto_cleanup();
 }
 
 
@@ -2609,6 +2612,7 @@ int PLUGIN_GLOBAL(hfile_plugin_init,_s3)(struct hFILE_plugin *self) {
     errsh  = curl_share_setopt(curl.share, CURLSHOPT_LOCKFUNC, share_lock);
     errsh |= curl_share_setopt(curl.share, CURLSHOPT_UNLOCKFUNC, share_unlock);
     errsh |= curl_share_setopt(curl.share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
+    errsh |= dynamic_crypto_init();
 
     if (errsh != 0) {
         curl_share_cleanup(curl.share);
