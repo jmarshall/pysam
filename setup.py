@@ -645,6 +645,9 @@ else:
         "-Wno-sign-compare",
         "-Wno-error=declaration-after-statement"]
 
+if truthy(os.environ.get("CIBUILDWHEEL", "0")):
+    extra_compile_args.append("-g1")
+
 suffix = sysconfig.get_config_var('EXT_SUFFIX')
 
 internal_htslib_libraries = [
