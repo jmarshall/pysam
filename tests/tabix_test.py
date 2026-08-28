@@ -6,8 +6,7 @@ import glob
 import pytest
 import re
 
-from TestUtils import checkBinaryEqual, checkGZBinaryEqual, check_url, \
-    load_and_convert, make_data_files, TABIX_DATADIR
+from TestUtils import checkBinaryEqual, checkGZBinaryEqual, load_and_convert, make_data_files, TABIX_DATADIR
 
 
 def setUpModule():
@@ -903,64 +902,40 @@ for vcf_file in vcf_files:
     globals()[n] = type(n, (TestVCFFromVariantFile,), dict(filename=vcf_file,))
 
 
+@pytest.mark.skipif(not getattr(pysam.config, "HAVE_LIBCURL", 0), reason="networking disabled")
+@pytest.mark.parametrize("input_filename,expected_header", [
+    pytest.param("example.gtf.gz", [], id="example"),
+    pytest.param("example_comments.gtf.gz", ["# comment at start"], id="example_comments"),
+])
 class TestRemoteFileHTTP:
+    def testFetchAll(self, httpserver, monkeypatch, tmp_path, input_filename, expected_header):
+        monkeypatch.chdir(tmp_path)
 
-    url = "http://genserv.anat.ox.ac.uk/downloads/pysam/test/example.gtf.gz"
-    region = "chr1:1-1000"
-    local = os.path.join(TABIX_DATADIR, "example.gtf.gz")
+        remote_file = pysam.TabixFile(f"http://{httpserver}/tabix_data/{input_filename}", "r")
+        local_file  = pysam.TabixFile(os.path.join(TABIX_DATADIR, input_filename), "r")
 
-    def setup_method(self):
-        if not getattr(pysam.config, "HAVE_LIBCURL", 0) or not check_url(self.url):
-            self.remote_file = None
-        else:
-            self.remote_file = pysam.TabixFile(self.url, "r")
-
-        self.local_file = pysam.TabixFile(self.local, "r")
-
-    def teardown_method(self):
-        if self.remote_file is None:
-            return
-
-        self.remote_file.close()
-        self.local_file.close()
-
-    def testFetchAll(self):
-        if self.remote_file is None:
-            return
-
-        remote_result = list(self.remote_file.fetch())
-        local_result = list(self.local_file.fetch())
+        remote_result = list(remote_file.fetch())
+        local_result  = list(local_file.fetch())
 
         assert len(remote_result) == len(local_result)
         for x, y in zip(remote_result, local_result):
             assert x == y
 
-    def testHeader(self):
-        if self.remote_file is None:
-            return
+        remote_file.close()
+        local_file.close()
 
-        assert list(self.local_file.header) == []
+    def testHeader(self, httpserver, monkeypatch, tmp_path, input_filename, expected_header):
+        monkeypatch.chdir(tmp_path)
 
+        remote_file = pysam.TabixFile(f"http://{httpserver}/tabix_data/{input_filename}", "r")
+        local_file  = pysam.TabixFile(os.path.join(TABIX_DATADIR, input_filename), "r")
 
-class TestRemoteFileHTTPWithHeader(TestRemoteFileHTTP):
+        remote_header = list(remote_file.header)
+        local_header  = list(local_file.header)
+        assert remote_header == local_header == expected_header
 
-    url = "http://genserv.anat.ox.ac.uk/downloads/pysam/test/example_comments.gtf.gz"
-    region = "chr1:1-1000"
-    local = os.path.join(TABIX_DATADIR, "example_comments.gtf.gz")
-
-    def setup_method(self):
-        if not getattr(pysam.config, "HAVE_LIBCURL", 0) or not check_url(self.url):
-            self.remote_file = None
-        else:
-            self.remote_file = pysam.TabixFile(self.url, "r")
-        self.local_file = pysam.TabixFile(self.local, "r")
-
-    def testHeader(self):
-        if self.remote_file is None:
-            return
-
-        assert list(self.local_file.header) == ["# comment at start"]
-        assert list(self.local_file.header) == self.remote_file.header
+        remote_file.close()
+        local_file.close()
 
 
 class TestIndexArgument:

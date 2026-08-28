@@ -6,7 +6,7 @@ import shutil
 
 import pytest
 
-from TestUtils import check_url, make_data_files, BAM_DATADIR
+from TestUtils import make_data_files, BAM_DATADIR
 
 
 def setUpModule():
@@ -215,35 +215,20 @@ class TestFastxFileWithEmptySequence:
         assert ref_num == l
 
 
-class TestRemoteFileFTP:
+@pytest.mark.skipif(not getattr(pysam.config, "HAVE_LIBCURL", 0), reason="networking disabled")
+class TestRemoteFile:
     '''test remote access.
     '''
+    def test_fetch(self, httpserver):
+        with pysam.Fastafile(f"http://{httpserver}/pysam_data/ex1.fa") as f:
+            assert len(f.fetch("chr1", 0, 1000)) == 1000
 
-    url = ("ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/"
-           "GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa")
-
-    def testFTPView(self):
-        if not check_url(self.url):
-            return
-
-        try:
-            with pysam.Fastafile(self.url) as f:
-                assert len(f.fetch("chr1", 0, 1000)) == 1000
-        except OSError:
-            pass
-
-    def test_sequence_lengths_are_available(self):
-        if not check_url(self.url):
-            return
-
-        try:
-            with pysam.Fastafile(self.url) as f:
-                assert len(f.references) == 3366
-                assert "chr1" in f.references
-                assert f.lengths[0] == 248956422
-                assert f.get_reference_length("chr1") == 248956422
-        except OSError:
-            pass
+    def test_sequence_lengths_are_available(self, httpserver):
+        with pysam.Fastafile(f"http://{httpserver}/pysam_data/ex1.fa") as f:
+            assert len(f.references) == 2
+            assert "chr1" in f.references
+            assert f.lengths[0] == 1575
+            assert f.get_reference_length("chr1") == 1575
 
 
 class TestFastqRecord:

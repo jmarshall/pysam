@@ -3,7 +3,6 @@ import gzip
 import subprocess
 import time
 from itertools import zip_longest
-from urllib.request import urlopen
 
 import pysam
 
@@ -127,19 +126,6 @@ def check_samtools_view_equal(
             return False
 
     return True
-
-
-def check_url(url):
-    '''return True if URL is available.
-
-    A URL might not be available if it is the wrong URL
-    or there is no connection to the URL.
-    '''
-    try:
-        urlopen(url, timeout=1)
-        return True
-    except Exception:
-        return False
 
 
 def dict_of_read(read, exclude=frozenset()):

@@ -6,6 +6,7 @@ and data files located there.
 '''
 
 import pytest
+import errno
 import os
 import shutil
 import collections
@@ -18,7 +19,7 @@ from functools import partial
 
 import pysam
 import pysam.samtools
-from TestUtils import checkBinaryEqual, checkGZBinaryEqual, check_url, \
+from TestUtils import checkBinaryEqual, checkGZBinaryEqual, \
     check_samtools_view_equal, dict_of_read, force_str, make_data_files, BAM_DATADIR
 
 
@@ -1378,27 +1379,25 @@ class TestDoubleFetchCRAMWithReference(TestDoubleFetchBAM):
     reference_filename = os.path.join(BAM_DATADIR, 'ex1.fa')
 
 
+@pytest.mark.skipif(not getattr(pysam.config, "HAVE_LIBCURL", 0), reason="networking disabled")
 class TestRemoteFileHTTP:
 
-    url = "http://genserv.anat.ox.ac.uk/downloads/pysam/test/ex1.bam"
     region = "chr1:1-1000"
     local = os.path.join(BAM_DATADIR, "ex1.bam")
 
-    def testView(self):
-        if not check_url(self.url):
-            return
+    def testView(self, httpserver, monkeypatch, tmp_path):
+        monkeypatch.chdir(tmp_path)
 
         samfile_local = pysam.AlignmentFile(self.local, "rb")
         ref = list(samfile_local.fetch(region=self.region))
 
-        result = pysam.samtools.view(self.url, self.region)
+        result = pysam.samtools.view(f"http://{httpserver}/pysam_data/ex1.bam", self.region)
         assert len(result.splitlines()) == len(ref)
 
-    def testFetch(self):
-        if not check_url(self.url):
-            return
+    def testFetch(self, httpserver, monkeypatch, tmp_path):
+        monkeypatch.chdir(tmp_path)
 
-        with pysam.AlignmentFile(self.url, "rb") as samfile:
+        with pysam.AlignmentFile(f"http://{httpserver}/pysam_data/ex1.bam", "rb") as samfile:
             result = list(samfile.fetch(region=self.region))
 
         with pysam.AlignmentFile(self.local, "rb") as samfile_local:
@@ -1408,11 +1407,10 @@ class TestRemoteFileHTTP:
         for x, y in zip(result, ref):
             assert x.compare(y) == 0
 
-    def testFetchAll(self):
-        if not check_url(self.url):
-            return
+    def testFetchAll(self, httpserver, monkeypatch, tmp_path):
+        monkeypatch.chdir(tmp_path)
 
-        with pysam.AlignmentFile(self.url, "rb") as samfile:
+        with pysam.AlignmentFile(f"http://{httpserver}/pysam_data/ex1.bam", "rb") as samfile:
             result = list(samfile.fetch())
 
         with pysam.AlignmentFile(self.local, "rb") as samfile_local:
@@ -1421,6 +1419,25 @@ class TestRemoteFileHTTP:
         assert len(ref) == len(result)
         for x, y in zip(result, ref):
             assert x.compare(y) == 0
+
+
+@pytest.mark.skipif(not getattr(pysam.config, "ENABLE_GCS", 0), reason="GCS networking disabled")
+def test_remote_GCS():
+    # Currently there's no way to redirect this to our local httpserver, so use //// to ensure
+    # it's a syntax error (so no network connection is made) while still verifying hfile_gcs works
+    with pytest.raises(OSError) as einfo:
+        fp = pysam.AlignmentFile("gs:////pysam_data/ex1.bam")
+    assert einfo.value.errno == errno.EINVAL
+
+
+@pytest.mark.skipif(not getattr(pysam.config, "ENABLE_S3", 0), reason="S3 networking disabled")
+def test_remote_S3(httpserver, monkeypatch, tmp_path):
+    monkeypatch.setenv("HTS_S3_HOST", httpserver)
+    monkeypatch.setenv("HTS_S3_ADDRESS_STYLE", "path")
+    monkeypatch.chdir(tmp_path)
+
+    with pysam.AlignmentFile("s3+http://pysam_data/ex1.bam") as fp:
+        assert fp.header.references == ("chr1", "chr2")
 
 
 class TestLargeOptValues:
@@ -1937,17 +1954,6 @@ class TestExplicitIndex:
                 os.path.join(BAM_DATADIR, "explicit_index.cram"),
                 "rc",
                 filepath_index=os.path.join(BAM_DATADIR, 'ex1.cram.crai')) as samfile:
-            samfile.fetch("chr1")
-
-    def testRemoteExplicitIndexBAM(self):
-        if not check_url(
-                "http://genserv.anat.ox.ac.uk/downloads/pysam/test/noindex.bam"):
-            return
-
-        with pysam.AlignmentFile(
-                "http://genserv.anat.ox.ac.uk/downloads/pysam/test/noindex.bam",
-                "rb",
-                filepath_index=os.path.join(BAM_DATADIR, 'ex1.bam.bai')) as samfile:
             samfile.fetch("chr1")
 
 
