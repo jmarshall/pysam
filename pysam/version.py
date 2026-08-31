@@ -1,5 +1,5 @@
 # pysam versioning information
-__version__ = "0.24.1a17"
+__version__ = "0.24.1a18"
 
 __samtools_version__ = "1.24"
 __bcftools_version__ = "1.24"
