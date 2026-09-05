@@ -34,7 +34,8 @@ elif test -x ${HOMEBREW_PREFIX-/usr/local}/bin/brew; then
 elif test -x /usr/sbin/pkg; then
     echo Installing prerequisites via pkg...
     pkg update
-    pkg install -y bcftools gmake py312-cython py312-mypy py312-pytest samtools
+    # Omitting py312-mypy as it is (currently) unavailable as a FreeBSD package
+    pkg install -y bcftools gmake py312-cython py312-pytest py312-setuptools samtools
 
 elif test -x /usr/pkg/bin/pkgin; then
     echo Installing prerequisites via pkgin...
