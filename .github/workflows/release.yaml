@@ -18,7 +18,7 @@ jobs:
       matrix:
         kind: [macos, many, musl]
         arch: [arm, intel]
-        build: ["cp39-* cp310-* cp311-*", "cp312-* cp313-*", "cp314-* cp315-*"]
+        build: ["cp314*-* cp315*-*"]
 
     steps:
       - name: Checkout pysam
