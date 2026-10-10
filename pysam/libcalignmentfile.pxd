@@ -14,10 +14,6 @@ cimport cython
 cdef extern from *:
     ctypedef char* const_char_ptr "const char*"
 
-cdef extern from "htslib_util.h":
-
-    char * pysam_bam_get_qname(bam1_t * b)
-
 ####################################################################
 # Utility types
 
