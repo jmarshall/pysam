@@ -39,9 +39,6 @@ jobs:
 
           CIBW_BUILD_VERBOSITY: 1
 
-          # Avoid linking with non-system library libdeflate.dylib
-          CIBW_ENVIRONMENT_MACOS: HTSLIB_CONFIGURE_OPTIONS="--without-libdeflate"
-
           CIBW_ARCHS: native
 
           CIBW_MANYLINUX_X86_64_IMAGE:  manylinux_2_28
