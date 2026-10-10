@@ -28,7 +28,7 @@ elif test -x /sbin/apk; then
 
 elif test -x ${HOMEBREW_PREFIX-/usr/local}/bin/brew; then
     echo Installing prerequisites via brew...
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install -q libdeflate samtools bcftools
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install -q samtools bcftools
     brew unlink xz || true
 
 elif test -x /usr/sbin/pkg; then
