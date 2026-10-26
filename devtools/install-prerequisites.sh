@@ -35,8 +35,9 @@ elif test -x /usr/bin/pkg; then
     echo Installing prerequisites via OmniOS pkg...
     set -x
     pkg install developer/build/gnu-make
-    pkg search cython
-    pkg search python
+    pkg list
+    pkg search cython || true
+    pkg search python || true
 
 elif test -x /usr/sbin/pkg; then
     echo Installing prerequisites via FreeBSD pkg...
