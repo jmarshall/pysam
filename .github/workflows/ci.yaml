@@ -129,9 +129,10 @@ jobs:
       - name: Debug
         run: |
           set -x
-          type -a $pytest || true
+          type $pytest || true
           ls -l /usr/bin/*test* || true
           ls -l /usr/local/bin/*test* || true
+          ls -l /usr/pkg/bin/*test* || true
 
       - name: Build (directly from checkout)
         run:  $python setup.py build

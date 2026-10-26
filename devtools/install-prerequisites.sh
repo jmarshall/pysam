@@ -34,10 +34,12 @@ elif test -x ${HOMEBREW_PREFIX-/usr/local}/bin/brew; then
 elif test -x /usr/bin/pkg; then
     echo Installing prerequisites via OmniOS pkg...
     set -x
-    pkg install developer/build/gnu-make
+    pkg install developer/build/gnu-make developer/gcc15
     pkg list
-    pkg search cython || true
-    pkg search python || true
+    pkg search build || true
+    #pkg search gcc || true
+    pkg search essential || true
+    python -m pip install --root-user-action ignore Cython pytest
 
 elif test -x /usr/sbin/pkg; then
     echo Installing prerequisites via FreeBSD pkg...
