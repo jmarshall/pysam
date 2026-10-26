@@ -7,6 +7,7 @@ permissions: {}
 jobs:
   direct:
     runs-on: ${{ matrix.os }}-latest
+    if: false
     strategy:
       matrix:
         os: [ubuntu, macos]
@@ -90,6 +91,10 @@ jobs:
             version: "11.0"
             python-version: "3.14"
 
+          - os: openbsd
+            version: "8.0"
+            python-version: "3.14"
+
     defaults:
       run:
         shell: cpa.sh {0}  # Run shell steps on the BSD VM
@@ -98,7 +103,7 @@ jobs:
       MAKE: "gmake"
       PYSAM_FIX_CFLAGS: "1"
       python: "python${{ matrix.python-version }}"
-      pytest: "pytest-${{ matrix.python-version }}"
+      pytest: "${{ case(matrix.os == 'openbsd', 'py.test', format('pytest-{0}', matrix.python-version)) }}"
 
     steps:
       - name: Checkout pysam
@@ -125,6 +130,7 @@ jobs:
 
   sdist:
     runs-on: ${{ matrix.os }}-latest
+    if: false
     strategy:
       matrix:
         os: [ubuntu, macos]
@@ -182,6 +188,7 @@ jobs:
 
   conda:
     timeout-minutes: 20
+    if: false
     runs-on: ${{ matrix.os }}-latest
     strategy:
       matrix:

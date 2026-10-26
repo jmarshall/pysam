@@ -43,6 +43,16 @@ elif test -x /usr/pkg/bin/pkgin; then
     # Omitting py314-mypy on this platform (NetBSD) as it is currently unavailable
     pkgin -y install bcftools gmake py314-cython py314-setuptools py314-test samtools
 
+elif test -x /usr/sbin/pkg_add; then
+    echo Installing prerequisites via pkg_add...
+    cat /etc/installurl || true
+    echo PKG_PATH is $PKG_PATH
+    pkg_add gmake py3-cython py3-mypy py3-setuptools py3-test
+    set -x
+    pkg_info -A
+    pkg_add -u
+    emulate=yes
+
 else
     echo No package manager detected
 fi
