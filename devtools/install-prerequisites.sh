@@ -49,18 +49,21 @@ elif test -x /usr/sbin/pkg_add; then
     #set -x
     #pkg_info -A
     #pkg_add -u
-    echo /usr/bin
-    ls /usr/bin
-    echo /usr/local/bin
-    ls /usr/local/bin
+    echo $PATH
+    test -d /bin && echo /bin && ls /bin
+    test -d /usr/bin && echo /usr/bin && ls /usr/bin
+    test -d /usr/local/bin && echo /usr/local/bin && ls /usr/local/bin
     emulate=yes
 
 else
     echo No package manager detected
-    echo /usr/bin
-    ls /usr/bin
-    echo /usr/local/bin
-    ls /usr/local/bin
+    echo $PATH
+    test -d /bin && echo /bin && ls /bin
+    test -d /sbin && echo /sbin && ls /sbin
+    test -d /usr/bin && echo /usr/bin && ls /usr/bin
+    test -d /usr/sbin && echo /usr/sbin && ls /usr/sbin
+    test -d /usr/local/bin && echo /usr/local/bin && ls /usr/local/bin
+    test -d /usr/local/sbin && echo /usr/local/sbin && ls /usr/local/sbin
 fi
 
 if test -n "$emulate" && test $# -ge 2; then

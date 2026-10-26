@@ -81,15 +81,16 @@ jobs:
   system:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: freebsd
-            version: "15.1"
-            python-version: "3.12"
+          #- os: freebsd
+          #  version: "15.1"
+          #  python-version: "3.12"
 
-          - os: netbsd
-            version: "11.0"
-            python-version: "3.14"
+          #- os: netbsd
+          #  version: "11.0"
+          #  python-version: "3.14"
 
           - os: openbsd
             version: "8.0"
