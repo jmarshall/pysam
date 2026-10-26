@@ -45,12 +45,14 @@ elif test -x /usr/pkg/bin/pkgin; then
 
 elif test -x /usr/sbin/pkg_add; then
     echo Installing prerequisites via pkg_add...
-    cat /etc/installurl || true
-    echo PKG_PATH is $PKG_PATH
     pkg_add gmake py3-cython py3-mypy py3-setuptools py3-test
-    set -x
-    pkg_info -A
-    pkg_add -u
+    #set -x
+    #pkg_info -A
+    #pkg_add -u
+    echo /usr/bin
+    ls /usr/bin
+    echo /usr/local/bin
+    ls /usr/local/bin
     emulate=yes
 
 else
