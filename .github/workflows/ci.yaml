@@ -84,13 +84,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- os: freebsd
-          #  version: "15.1"
-          #  python-version: "3.12"
+          - os: freebsd
+            version: "15.1"
+            python-version: "3.12"
 
-          #- os: netbsd
-          #  version: "11.0"
-          #  python-version: "3.14"
+          - os: netbsd
+            version: "11.0"
+            python-version: "3.14"
 
           - os: openbsd
             version: "8.0"
@@ -98,7 +98,7 @@ jobs:
 
           - os: omnios
             version: "r151058"
-            python-version: "3.14"
+            python-version: "3.13"
 
     defaults:
       run:
@@ -125,6 +125,13 @@ jobs:
 
       - name: Install prerequisites
         run:  sudo devtools/install-prerequisites.sh $PWD/devtools/emulate-tools.py /usr/local/bin
+
+      - name: Debug
+        run: |
+          set -x
+          type -a $pytest || true
+          ls -l /usr/bin/*test* || true
+          ls -l /usr/local/bin/*test* || true
 
       - name: Build (directly from checkout)
         run:  $python setup.py build
