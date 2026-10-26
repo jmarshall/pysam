@@ -55,15 +55,22 @@ elif test -x /usr/sbin/pkg_add; then
     test -d /usr/local/bin && echo /usr/local/bin && ls /usr/local/bin
     emulate=yes
 
+#elif test -x /usr/sbin/pkgadd; then
+#    echo Installing prerequisites via pkg_add...
+#    pkgadd gmake py3-cython py3-mypy py3-setuptools py3-test
+
 else
     echo No package manager detected
     echo $PATH
+    set -x
     test -d /bin && echo /bin && ls /bin
     test -d /sbin && echo /sbin && ls /sbin
     test -d /usr/bin && echo /usr/bin && ls /usr/bin
     test -d /usr/sbin && echo /usr/sbin && ls /usr/sbin
     test -d /usr/local/bin && echo /usr/local/bin && ls /usr/local/bin
     test -d /usr/local/sbin && echo /usr/local/sbin && ls /usr/local/sbin
+    type -a pkg || true
+    type -a kayak || true
 fi
 
 if test -n "$emulate" && test $# -ge 2; then
