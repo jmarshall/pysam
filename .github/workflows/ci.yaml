@@ -108,7 +108,6 @@ jobs:
       MAKE: "gmake"
       PYSAM_FIX_CFLAGS: "1"
       python: "python${{ matrix.python-version }}"
-      pytest: "${{ case(matrix.os == 'openbsd', 'py.test', format('pytest-{0}', matrix.python-version)) }}"
 
     steps:
       - name: Checkout pysam
@@ -121,7 +120,7 @@ jobs:
         with:
           operating_system: ${{ matrix.os }}
           version: ${{ matrix.version }}
-          environment_variables: MAKE PYSAM_FIX_CFLAGS python pytest
+          environment_variables: MAKE PYSAM_FIX_CFLAGS python
 
       - name: Install prerequisites
         run:  sudo devtools/install-prerequisites.sh $PWD/devtools/emulate-tools.py /usr/local/bin
@@ -129,16 +128,20 @@ jobs:
       - name: Debug
         run: |
           set -x
-          type $pytest || true
           ls -l /usr/bin/*test* || true
           ls -l /usr/local/bin/*test* || true
           ls -l /usr/pkg/bin/*test* || true
+          echo
+          ls -l /bin/python* || true
+          ls -l /usr/bin/python* || true
+          ls -l /usr/local/bin/python* || true
+          ls -l /usr/pkg/bin/python* || true
 
       - name: Build (directly from checkout)
         run:  $python setup.py build
 
       - name: Run tests
-        run:  PYTHONPATH="$(echo $PWD/build/lib.*)" $pytest
+        run:  PYTHONPATH="$(echo $PWD/build/lib.*)" $python -m pytest
 
 
   sdist:
