@@ -31,8 +31,15 @@ elif test -x ${HOMEBREW_PREFIX-/usr/local}/bin/brew; then
     HOMEBREW_NO_AUTO_UPDATE=1 brew install -q samtools bcftools
     brew unlink xz || true
 
+elif test -x /usr/bin/pkg; then
+    echo Installing prerequisites via OmniOS pkg...
+    set -x
+    pkg install developer/build/gnu-make
+    pkg search cython
+    pkg search python
+
 elif test -x /usr/sbin/pkg; then
-    echo Installing prerequisites via pkg...
+    echo Installing prerequisites via FreeBSD pkg...
     pkg update
     # Omitting py312-mypy as it is (currently) unavailable as a FreeBSD package
     pkg install -y bcftools gmake py312-cython py312-pytest py312-setuptools samtools
