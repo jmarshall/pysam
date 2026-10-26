@@ -95,6 +95,10 @@ jobs:
             version: "8.0"
             python-version: "3.14"
 
+          - os: omnios
+            version: "r151058"
+            python-version: "3.14"
+
     defaults:
       run:
         shell: cpa.sh {0}  # Run shell steps on the BSD VM

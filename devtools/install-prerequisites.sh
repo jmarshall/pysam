@@ -57,6 +57,10 @@ elif test -x /usr/sbin/pkg_add; then
 
 else
     echo No package manager detected
+    echo /usr/bin
+    ls /usr/bin
+    echo /usr/local/bin
+    ls /usr/local/bin
 fi
 
 if test -n "$emulate" && test $# -ge 2; then
