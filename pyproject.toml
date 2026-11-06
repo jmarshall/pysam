@@ -27,7 +27,10 @@ dev = ["pytest>=6", {include-group = "build"}]
 doc = ["sphinx>=8", "sphinx-rtd-theme>=3"]
 
 [tool.cibuildwheel]
-before-all = "{project}/devtools/install-prerequisites.sh {project}/devtools/emulate-tools.py /usr/local/bin"
+before-all = [
+    "{project}/devtools/install-prerequisites.sh {project}/devtools/emulate-tools.py /usr/local/bin",
+    "{project}/devtools/build-prerequisites.sh {project}/build",
+]
 # Necessary until we build libhts.a out-of-tree from within build_temp
 before-build = "make -C {project}/htslib distclean"
 

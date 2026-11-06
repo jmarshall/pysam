@@ -209,7 +209,7 @@ def write_configvars_header(filename, ext, prefix):
 
 
 @contextmanager
-def set_compiler_envvars():
+def set_compiler_envvars(localdir):
     tmp_vars = []
     for var in ['CC', 'CFLAGS', 'LDFLAGS']:
         if var in os.environ:
@@ -223,6 +223,10 @@ def set_compiler_envvars():
             if var == 'CFLAGS':
                 value, adjustments = adjust_cflags(value)
                 for adj in sorted(adjustments): print(f"# pysam: adjusted CFLAGS: {adj}")
+                if localdir is not None: value += f" -I{localdir}/include"
+            elif var == 'LDFLAGS':
+                if localdir is not None: value += f" -L{localdir}/lib"
+
             print(f"# pysam: (sysconfig) {var}={value}")
             os.environ[var] = value
             tmp_vars += [var]
@@ -251,7 +255,10 @@ def configure_library(library_dir, env_options=None, options=[]):
     if not os.path.exists(configure_script):
         raise ValueError(f"configure script {configure_script!r} does not exist")
 
-    with changedir(library_dir), set_compiler_envvars():
+    localdir = os.path.join("build", "local")
+    localdir = os.path.abspath(localdir) if os.path.exists(localdir) else None
+
+    with changedir(library_dir), set_compiler_envvars(localdir):
         if env_options is not None:
             if run_configure(env_options):
                 return env_options
@@ -588,6 +595,9 @@ elif HTSLIB_MODE == 'shared':
     htslib_include_dirs = ['htslib']
 else:
     raise ValueError(f"unknown HTSLIB value {HTSLIB_MODE!r}")
+
+if os.path.exists(os.path.join("build", "local")):
+    htslib_library_dirs.append(os.path.join("build", "local", "lib"))
 
 # build config.py
 with open(os.path.join("pysam", "config.py"), "w") as outf:
