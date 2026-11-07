@@ -15,6 +15,7 @@ jobs:
                       case(matrix.arch == 'arm', 'macos-latest', 'macos-15-intel'),
                       case(matrix.arch == 'arm', 'ubuntu-24.04-arm', 'ubuntu-latest')) }}
     strategy:
+      fail-fast: false
       matrix:
         kind: [macos, many, musl]
         arch: [arm, intel]

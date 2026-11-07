@@ -37,6 +37,9 @@ before-build = "make -C {project}/htslib distclean"
 test-requires = ["pytest"]
 test-command = "pytest {project}/tests"
 
+[tool.cibuildwheel.linux]
+repair-wheel-command = "AUDITWHEEL_LD_LIBRARY_PATH={project}/build/local/lib auditwheel repair -w {dest_dir} {wheel}"
+
 [tool.pytest.ini_options]
 # -s: do not capture stdout, conflicts with pysam.dispatch
 # -v: verbose output

@@ -530,6 +530,10 @@ if HTSLIB_MODE in ['shared', 'separate']:
         ["--enable-libcurl",
          "--disable-libcurl"])
 
+    with open("htslib/config.log") as fp:
+        for line in fp:
+            print(f">> {line}", end="")
+
     HTSLIB_SOURCE = "builtin"
     print(f"# pysam: htslib configure options: {htslib_configure_options}")
 
