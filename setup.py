@@ -27,6 +27,14 @@ from setuptools import setup, Command
 from setuptools.command.sdist import sdist
 from setuptools.extension import Extension
 
+print(f"SC 1 {sysconfig} {sysconfig.get_config_var}")
+
+def dump(when):
+    archf = os.environ.get("ARCHFLAGS")
+    print(f"{when} ARCHFLAGS: {archf!r}")
+    for k, v in sysconfig.get_config_vars().items():
+        if k.startswith("_OSX_"): print(f"{when} {k}: {v!r}")
+
 try:
     from setuptools.errors import CompileError, LinkError
 except ImportError:
@@ -218,10 +226,13 @@ def set_compiler_envvars(localdir):
             print(f"# pysam: (env) {var}={os.environ[var]}")
         elif var in sysconfig.get_config_vars():
             value = sysconfig.get_config_var(var)
+            print(f"SCE: sc0: {var}: {value}")
             if var == 'CFLAGS' and 'CCSHARED' in sysconfig.get_config_vars():
                 value += ' ' + sysconfig.get_config_var('CCSHARED')
+                print(f"SCE: sc1: {var}: {value}")
             if var == 'CFLAGS':
                 value, adjustments = adjust_cflags(value)
+                print(f"SCE: sc2: {var}: {value}")
                 for adj in sorted(adjustments): print(f"# pysam: adjusted CFLAGS: {adj}")
                 if localdir is not None: value += f" -I{localdir}/include"
             elif var == 'LDFLAGS':
@@ -316,6 +327,7 @@ class CyExtension(Extension):
 
 class cy_build_ext(build_ext):
     def initialize_options(self):
+        print(f"SYSCONFIG CFLAGS init_opts:    {sysconfig.get_config_var('CFLAGS')}")
         super().initialize_options()
         self.cython_directives = global_cython_directives()
 
@@ -355,11 +367,16 @@ class cy_build_ext(build_ext):
         return None
 
     def run(self):
+        print(f"SC 2 {sysconfig} {sysconfig.get_config_var}")
+        dump("SC 2")
+        print(f"SYSCONFIG CFLAGS run:          {sysconfig.get_config_var('CFLAGS')}")
         if sys.platform == 'darwin':
             ldshared = os.environ.get('LDSHARED', sysconfig.get_config_var('LDSHARED'))
             os.environ['LDSHARED'] = ldshared.replace('-bundle', '')
 
+        print(f"SC 3 {sysconfig} {sysconfig.get_config_var}")
         super().run()
+        print(f"SC 4 {sysconfig} {sysconfig.get_config_var}")
         try:
             if HTSLIB_MODE != 'separate':
                 self.check_ext_symbol_conflicts()
@@ -369,6 +386,9 @@ class cy_build_ext(build_ext):
             log.warning("skipping symbol collision check (invoking nm failed)")
 
     def build_extensions(self):
+        print(f"SC 5 {sysconfig} {sysconfig.get_config_var}")
+        dump("SC 5")
+        print(f"SYSCONFIG CFLAGS build_exts:   {sysconfig.get_config_var('CFLAGS')}")
         c99_flags = self.c99_compile_args()
         if c99_flags:
             executables = {}
@@ -399,8 +419,8 @@ class cy_build_ext(build_ext):
         print(f"COMPILER compiler.linker_so:   {self.compiler.linker_so}")
         print(f"COMPILER compiler.archiver:    {self.compiler.archiver}")
         print(f"SYSCONFIG CC:                  {sysconfig.get_config_var('CC')}")
-        print(f"SYSCONFIG CCSHARED:            {sysconfig.get_config_var('CCSHARD')}")
-        print(f"SYSCONFIG CFLAGS:              {sysconfig.get_config_var('CFLAGS')}")
+        print(f"SYSCONFIG CCSHARED:            {sysconfig.get_config_var('CCSHARED')}")
+        print(f"SYSCONFIG CFLAGS build_ext:    {sysconfig.get_config_var('CFLAGS')}")
         print(f"SYSCONFIG LDFLAGS:             {sysconfig.get_config_var('LDFLAGS')}")
 
         if isinstance(ext, CyExtension) and ext._init_func:
