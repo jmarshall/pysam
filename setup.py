@@ -394,6 +394,15 @@ class cy_build_ext(build_ext):
 
     def build_extension(self, ext):
 
+        print(f"COMPILER compiler.compiler:    {self.compiler.compiler}")
+        print(f"COMPILER compiler.compiler_so: {self.compiler.compiler_so}")
+        print(f"COMPILER compiler.linker_so:   {self.compiler.linker_so}")
+        print(f"COMPILER compiler.archiver:    {self.compiler.archiver}")
+        print(f"SYSCONFIG CC:                  {sysconfig.get_config_var('CC')}")
+        print(f"SYSCONFIG CCSHARED:            {sysconfig.get_config_var('CCSHARD')}")
+        print(f"SYSCONFIG CFLAGS:              {sysconfig.get_config_var('CFLAGS')}")
+        print(f"SYSCONFIG LDFLAGS:             {sysconfig.get_config_var('LDFLAGS')}")
+
         if isinstance(ext, CyExtension) and ext._init_func:
             ext._init_func(ext)
 
@@ -530,7 +539,8 @@ if HTSLIB_MODE in ['shared', 'separate']:
         ["--enable-libcurl",
          "--disable-libcurl"])
 
-    with open("htslib/config.log") as fp:
+    #with open("htslib/config.log") as fp:
+    with open("htslib/config.mk") as fp:
         for line in fp:
             print(f">> {line}", end="")
 
